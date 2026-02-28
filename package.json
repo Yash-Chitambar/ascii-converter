@@ -1,0 +1,41 @@
+{
+  "name": "@yash-chitambar/ascii-converter",
+  "version": "0.1.0",
+  "description": "ASCIIfy — Framer component for real-time ASCII art conversion from images, videos, and 3D GLB models",
+  "main": "dist/index.js",
+  "module": "dist/index.esm.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0",
+    "framer": "^2.0.0",
+    "framer-motion": "^11.0.0"
+  },
+  "dependencies": {
+    "three": "^0.170.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/three": "^0.170.0",
+    "typescript": "^5"
+  },
+  "keywords": [
+    "framer",
+    "ascii",
+    "ascii-art",
+    "image-to-ascii",
+    "video-to-ascii",
+    "3d-ascii",
+    "component"
+  ],
+  "author": "Yash Chitambar",
+  "license": "MIT"
+}

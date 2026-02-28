@@ -1,0 +1,26 @@
+{
+  "id": "yash-chitambar-ascii-converter",
+  "name": "ASCIIfy",
+  "description": "Real-time ASCII art conversion from images, videos, webcam, and 3D GLB models. Supports 10 color palettes, CRT effects, and full Framer property panel integration.",
+  "version": "0.1.0",
+  "author": "Yash Chitambar",
+  "components": [
+    {
+      "name": "ASCIIfy",
+      "export": "ASCIIfy",
+      "file": "src/index.tsx",
+      "description": "Convert images, videos, or webcam feed to real-time ASCII art",
+      "tags": ["ascii", "image", "video", "webcam", "art", "retro"]
+    },
+    {
+      "name": "ASCIIfy 3D",
+      "export": "ASCIIfy3D",
+      "file": "src/index.tsx",
+      "description": "Render GLB/GLTF 3D models as animated ASCII art with optional CRT effects",
+      "tags": ["ascii", "3d", "glb", "gltf", "art", "retro"]
+    }
+  ],
+  "dependencies": {
+    "three": "^0.170.0"
+  }
+}
