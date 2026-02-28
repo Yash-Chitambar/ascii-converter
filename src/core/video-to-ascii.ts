@@ -1,6 +1,7 @@
 import type { AsciiGrid, FitMode } from "../types";
 import type { RampPreset } from "../types";
 import { imageDataToAsciiGrid } from "./image-to-ascii";
+import { computeFit } from "./fit-modes";
 import { MAX_DELTA_MS } from "../constants";
 
 // ---------------------------------------------------------------------------
@@ -53,8 +54,6 @@ function captureVideoFrame(
     ctx = (canvas as HTMLCanvasElement).getContext("2d") as CanvasRenderingContext2D;
   }
 
-  // Import here to avoid circular dependency
-  const { computeFit } = require("./fit-modes");
   const fit = computeFit(srcW, srcH, sampleWidth, sampleHeight, fitMode);
 
   ctx.clearRect(0, 0, sampleWidth, sampleHeight);

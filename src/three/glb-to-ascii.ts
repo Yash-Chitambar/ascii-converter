@@ -64,7 +64,6 @@ export async function createGLBToAsciiRenderer(
     rotation,
     autoRotate,
     autoRotateSpeed,
-    colorMode,
     rampPreset = "standard",
     customCharacters,
     characterDensity = 0.5,
@@ -149,16 +148,15 @@ export async function createGLBToAsciiRenderer(
       // WebGL reads pixels bottom-up — flip vertically
       const flipped = flipY(pixelBuffer, sampleW, sampleH);
 
-      const imageData = new ImageData(
-        new Uint8ClampedArray(flipped.buffer),
-        sampleW,
-        sampleH
-      );
+      // Wrap in ImageData — copy into a plain ArrayBuffer to satisfy TS strict types
+      const clamped = new Uint8ClampedArray(flipped.length);
+      clamped.set(flipped);
+      const imageData = new ImageData(clamped, sampleW, sampleH);
 
       const grid = imageDataToAsciiGrid(imageData, {
         gridCols,
         gridRows,
-        rampPreset: colorMode === "original" ? rampPreset : rampPreset,
+        rampPreset,
         customCharacters,
         characterDensity,
         invertBrightness,
@@ -170,6 +168,15 @@ export async function createGLBToAsciiRenderer(
     rafId = requestAnimationFrame(tick);
   }
 
+  // Shared stop logic used by both stop() and dispose() via closure
+  function stopLoop(): void {
+    running = false;
+    if (rafId !== null) {
+      cancelAnimationFrame(rafId);
+      rafId = null;
+    }
+  }
+
   return {
     start() {
       if (running) return;
@@ -179,14 +186,10 @@ export async function createGLBToAsciiRenderer(
       rafId = requestAnimationFrame(tick);
     },
     stop() {
-      running = false;
-      if (rafId !== null) {
-        cancelAnimationFrame(rafId);
-        rafId = null;
-      }
+      stopLoop();
     },
     dispose() {
-      this.stop();
+      stopLoop();
       renderTarget.dispose();
       renderer.dispose();
       scene.clear();

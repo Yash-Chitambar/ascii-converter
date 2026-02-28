@@ -21,13 +21,13 @@ addPropertyControls(ASCIIfy, {
   imageSrc: {
     type: ControlType.Image,
     title: "Image",
-    hidden: (props: { mediaType: string }) => props.mediaType !== "image",
+    hidden: (props: { mediaType?: string }) => props.mediaType !== "image",
   },
   videoSrc: {
     type: ControlType.File,
     title: "Video",
     allowedFileTypes: ["mp4", "webm", "ogg"],
-    hidden: (props: { mediaType: string }) => props.mediaType !== "video",
+    hidden: (props: { mediaType?: string }) => props.mediaType !== "video",
   },
 
   // ── ASCII controls ────────────────────────────────────────────────────────
@@ -116,7 +116,7 @@ addPropertyControls(ASCIIfy, {
     max: 60,
     step: 1,
     defaultValue: 15,
-    hidden: (props: { mediaType: string }) => props.mediaType === "image",
+    hidden: (props: { mediaType?: string }) => props.mediaType === "image",
   },
   renderer: {
     type: ControlType.Enum,
@@ -131,25 +131,25 @@ addPropertyControls(ASCIIfy, {
     type: ControlType.Boolean,
     title: "Loop",
     defaultValue: true,
-    hidden: (props: { mediaType: string }) => props.mediaType === "image",
+    hidden: (props: { mediaType?: string }) => props.mediaType === "image",
   },
   muted: {
     type: ControlType.Boolean,
     title: "Muted",
     defaultValue: true,
-    hidden: (props: { mediaType: string }) => props.mediaType === "image",
+    hidden: (props: { mediaType?: string }) => props.mediaType === "image",
   },
   autoplay: {
     type: ControlType.Boolean,
     title: "Autoplay",
     defaultValue: true,
-    hidden: (props: { mediaType: string }) => props.mediaType === "image",
+    hidden: (props: { mediaType?: string }) => props.mediaType === "image",
   },
   pauseOnBackground: {
     type: ControlType.Boolean,
     title: "Pause in BG",
     defaultValue: true,
-    hidden: (props: { mediaType: string }) => props.mediaType === "image",
+    hidden: (props: { mediaType?: string }) => props.mediaType === "image",
   },
 
   // ── CRT effect ────────────────────────────────────────────────────────────
@@ -165,7 +165,7 @@ addPropertyControls(ASCIIfy, {
     max: 1,
     step: 0.05,
     defaultValue: 0.15,
-    hidden: (props: { crtEnabled: boolean }) => !props.crtEnabled,
+    hidden: (props: { crtEnabled?: boolean }) => !props.crtEnabled,
   },
   crtGlowIntensity: {
     type: ControlType.Number,
@@ -174,13 +174,13 @@ addPropertyControls(ASCIIfy, {
     max: 1,
     step: 0.05,
     defaultValue: 0.6,
-    hidden: (props: { crtEnabled: boolean }) => !props.crtEnabled,
+    hidden: (props: { crtEnabled?: boolean }) => !props.crtEnabled,
   },
   crtGlowColor: {
     type: ControlType.Color,
     title: "Glow Color",
     defaultValue: "#00ff41",
-    hidden: (props: { crtEnabled: boolean }) => !props.crtEnabled,
+    hidden: (props: { crtEnabled?: boolean }) => !props.crtEnabled,
   },
 
   // ── Accessibility ─────────────────────────────────────────────────────────
@@ -223,7 +223,7 @@ addPropertyControls(ASCIIfy3D, {
     step: 5,
     defaultValue: 30,
     unit: "°/s",
-    hidden: (props: { autoRotate: boolean }) => !props.autoRotate,
+    hidden: (props: { autoRotate?: boolean }) => !props.autoRotate,
   },
   initialRotationX: {
     type: ControlType.Number,
@@ -287,7 +287,7 @@ addPropertyControls(ASCIIfy3D, {
     type: ControlType.Color,
     title: "Glow Color",
     defaultValue: "#00ff41",
-    hidden: (props: { crtEnabled: boolean }) => !props.crtEnabled,
+    hidden: (props: { crtEnabled?: boolean }) => !props.crtEnabled,
   },
   crtScanlineOpacity: {
     type: ControlType.Number,
@@ -296,7 +296,7 @@ addPropertyControls(ASCIIfy3D, {
     max: 1,
     step: 0.05,
     defaultValue: 0.15,
-    hidden: (props: { crtEnabled: boolean }) => !props.crtEnabled,
+    hidden: (props: { crtEnabled?: boolean }) => !props.crtEnabled,
   },
 
   // ── Performance ───────────────────────────────────────────────────────────
