@@ -192,17 +192,48 @@
     display: flex;
     gap: 24px;
   }
+  /* --- Tabs --- */
+  .tabs {
+    display: flex;
+    gap: 0;
+    margin-left: auto;
+  }
+  .tab-btn {
+    background: none;
+    border: 1px solid #333;
+    color: #666;
+    padding: 6px 16px;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: 'Courier New', monospace;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+  }
+  .tab-btn:first-child { border-radius: 4px 0 0 4px; }
+  .tab-btn:last-child { border-radius: 0 4px 4px 0; border-left: none; }
+  .tab-btn.active {
+    color: #00ff41;
+    border-color: #00ff41;
+    background: rgba(0, 255, 65, 0.08);
+  }
+  .tab-btn:hover:not(.active) {
+    color: #999;
+    border-color: #555;
+  }
 </style>
 </head>
 <body>
 
 <header>
   <h1>&gt; ASCIIfy Test UI</h1>
+  <div class="tabs">
+    <button class="tab-btn active" id="tab-media" onclick="switchTab('media')">Image / Video</button>
+    <button class="tab-btn" id="tab-3d" onclick="switchTab('3d')">3D Model</button>
+  </div>
 </header>
 
 <div class="layout">
-  <!-- Sidebar Controls -->
-  <div class="sidebar">
+  <!-- Sidebar Controls (Image/Video) -->
+  <div class="sidebar" id="sidebar-media">
     <div class="control-group">
       <h2>Media Source</h2>
       <div class="drop-zone" id="drop-zone">
@@ -285,6 +316,76 @@
     </div>
   </div>
 
+  <!-- Sidebar Controls (3D Model) -->
+  <div class="sidebar" id="sidebar-3d" style="display:none">
+    <div class="control-group">
+      <h2>3D Model Source</h2>
+      <div class="drop-zone" id="drop-zone-3d">
+        <p>Drop GLB/GLTF file</p>
+        <div class="formats">GLB, GLTF</div>
+        <input type="file" id="file-input-3d" accept=".glb,.gltf">
+      </div>
+      <div class="file-name" id="file-name-3d"></div>
+    </div>
+
+    <div class="control-group">
+      <h2>Rotation</h2>
+      <div class="checkbox-row">
+        <input type="checkbox" id="auto-rotate" checked>
+        <label for="auto-rotate">Auto Rotate</label>
+      </div>
+      <label>Rotate Speed <span class="val" id="rotate-speed-val">30</span> °/s</label>
+      <input type="range" id="rotate-speed" min="1" max="360" step="1" value="30">
+      <label>Rotation X <span class="val" id="rot-x-val">0</span>°</label>
+      <input type="range" id="rot-x" min="-180" max="180" step="1" value="0">
+      <label>Rotation Y <span class="val" id="rot-y-val">0</span>°</label>
+      <input type="range" id="rot-y" min="-180" max="180" step="1" value="0">
+      <label>Rotation Z <span class="val" id="rot-z-val">0</span>°</label>
+      <input type="range" id="rot-z" min="-180" max="180" step="1" value="0">
+    </div>
+
+    <div class="control-group">
+      <h2>ASCII Settings</h2>
+      <label>Density <span class="val" id="density-3d-val">0.50</span></label>
+      <input type="range" id="density-3d" min="0" max="1" step="0.05" value="0.5">
+      <select id="ramp-3d">
+        <option value="standard">Standard (70 chars)</option>
+        <option value="simple">Simple (10 chars)</option>
+        <option value="blocks">Blocks</option>
+        <option value="minimal">Minimal</option>
+        <option value="binary">Binary</option>
+      </select>
+    </div>
+
+    <div class="control-group">
+      <h2>Color Mode</h2>
+      <select id="color-mode-3d">
+        <option value="classic-green">Classic Green</option>
+        <option value="original">Original Colors</option>
+        <option value="amber-crt">Amber CRT</option>
+        <option value="cool-blue">Cool Blue</option>
+        <option value="hot-pink">Hot Pink</option>
+        <option value="phosphor-white">Phosphor White</option>
+      </select>
+    </div>
+
+    <div class="control-group">
+      <h2>Font</h2>
+      <label>Font Size <span class="val" id="font-size-3d-val">10</span></label>
+      <input type="range" id="font-size-3d" min="4" max="24" step="1" value="10">
+      <label>Line Height <span class="val" id="line-height-3d-val">1.1</span></label>
+      <input type="range" id="line-height-3d" min="0.8" max="2.0" step="0.05" value="1.1">
+    </div>
+
+    <div class="control-group">
+      <h2>Performance</h2>
+      <label>Resolution Scale <span class="val" id="resolution-3d-val">0.50</span></label>
+      <input type="range" id="resolution-3d" min="0.25" max="1" step="0.05" value="0.5">
+      <label>Refresh Rate <span class="val" id="fps-3d-val">15</span> fps</label>
+      <input type="range" id="fps-3d" min="5" max="60" step="1" value="15">
+    </div>
+  </div>
+
   <!-- Main ASCII Output -->
   <div class="main-area" id="main-area">
     <div class="placeholder-msg" id="placeholder">
@@ -304,6 +405,15 @@
   <span id="status-source">source: --</span>
   <span id="status-time">time: --</span>
 </div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+    "three/examples/jsm/loaders/GLTFLoader.js": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/loaders/GLTFLoader.js"
+  }
+}
+</script>
 
 <script>
 // =========================================================================
@@ -530,12 +640,26 @@ function measureChar(fontFamily, fontSize, lineHeight, container) {
   return { charWidth: rect.width || fontSize * 0.6, charHeight: rect.height || fontSize * lineHeight };
 }
 
+// Expose core engine to ES module scope (for 3D tab)
+window.RAMPS = RAMPS;
+window.ALPHA_THRESHOLD = ALPHA_THRESHOLD;
+window.DARK_THRESHOLD = DARK_THRESHOLD;
+window.MAX_DELTA_MS = MAX_DELTA_MS;
+window.rgbToBrightness = rgbToBrightness;
+window.brightnessToChar = brightnessToChar;
+window.densityToRampSubset = densityToRampSubset;
+window.measureChar = measureChar;
+window.applyPalette = applyPalette;
+window.getPalette = getPalette;
+window.renderToDOM = renderToDOM;
+window.FONT_FAMILY = '"Courier New", Courier, "Lucida Console", monospace';
+
 
 // =========================================================================
 // UI Controller
 // =========================================================================
 
-const fontFamily = '"Courier New", Courier, "Lucida Console", monospace';
+const fontFamily = window.FONT_FAMILY;
 
 const els = {
   fileInput: document.getElementById('file-input'),
@@ -571,6 +695,7 @@ const els = {
 
 // State
 let currentSource = null; // { type: 'image' | 'video', element: HTMLImageElement | HTMLVideoElement }
+let currentMediaUrl = null; // Object URL for cleanup
 let videoLoop = null;
 let videoRunning = false;
 
@@ -645,8 +770,9 @@ function startVideoLoop() {
 
   function tick(timestamp) {
     if (!videoRunning) return;
-    const delta = Math.min(timestamp - lastFrameTime, MAX_DELTA_MS);
-    if (delta >= frameInterval) {
+    if (lastFrameTime === 0) lastFrameTime = timestamp;
+    const elapsed = timestamp - lastFrameTime;
+    if (elapsed >= frameInterval) {
       lastFrameTime = timestamp;
       if (video.readyState >= 2 && video.videoWidth > 0) {
         // Capture frame
@@ -704,16 +830,19 @@ function stopVideoLoop() {
 // --- File handling ---
 function handleFile(file) {
   stopVideoLoop();
+  if (currentMediaUrl) URL.revokeObjectURL(currentMediaUrl);
   const url = URL.createObjectURL(file);
+  currentMediaUrl = url;
   els.fileName.textContent = file.name;
 
-  if (file.type.startsWith('video/')) {
+  const isVideo = file.type.startsWith('video/') || /\.(mp4|webm|ogg|mov)$/i.test(file.name);
+  if (isVideo) {
     const video = document.createElement('video');
     video.src = url;
     video.muted = true;
     video.loop = true;
     video.playsInline = true;
-    video.addEventListener('loadeddata', () => {
+    video.addEventListener('canplay', () => {
       currentSource = { type: 'video', element: video };
       els.placeholder.style.display = 'none';
       els.asciiOutput.style.display = '';
@@ -722,6 +851,11 @@ function handleFile(file) {
       video.play();
       startVideoLoop();
     });
+    video.addEventListener('error', (e) => {
+      console.error('Video load error:', video.error);
+      els.statusSource.textContent = `error: ${video.error?.message || 'failed to load video'}`;
+    });
+    video.load();
   } else {
     // Image or SVG
     const img = new Image();
@@ -801,8 +935,441 @@ els.btnRestart.addEventListener('click', () => {
 let resizeTimer;
 window.addEventListener('resize', () => {
   clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(rerender, 150);
+  resizeTimer = setTimeout(() => {
+    rerender();
+    if (typeof rerender3D === 'function') rerender3D();
+  }, 150);
 });
+
+// =========================================================================
+// Tab switching
+// =========================================================================
+window.activeTab = 'media';
+
+window.switchTab = function switchTab(tab) {
+  if (tab === window.activeTab) return;
+  window.activeTab = tab;
+
+  document.getElementById('tab-media').classList.toggle('active', tab === 'media');
+  document.getElementById('tab-3d').classList.toggle('active', tab === '3d');
+  document.getElementById('sidebar-media').style.display = tab === 'media' ? '' : 'none';
+  document.getElementById('sidebar-3d').style.display = tab === '3d' ? '' : 'none';
+
+  if (tab === 'media') {
+    // Stop 3D loop
+    if (typeof stop3DLoop === 'function') stop3DLoop();
+    // Resume media if there was a source
+    if (currentSource && currentSource.type === 'video') startVideoLoop();
+    else if (currentSource && currentSource.type === 'image') renderImage();
+  } else {
+    // Stop media loops
+    stopVideoLoop();
+    // Resume 3D if loaded
+    if (typeof resume3DLoop === 'function') resume3DLoop();
+  }
+}
+</script>
+
+<!-- ===================================================================== -->
+<!-- 3D GLB-to-ASCII pipeline (ES module for Three.js imports) -->
+<!-- ===================================================================== -->
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+
+// Pull shared engine functions from the global (non-module) script
+const { RAMPS, ALPHA_THRESHOLD, DARK_THRESHOLD, MAX_DELTA_MS, FONT_FAMILY,
+  rgbToBrightness, brightnessToChar, densityToRampSubset,
+  measureChar, applyPalette, getPalette, renderToDOM } = window;
+
+// --- State ---
+let glbHandle = null; // { start, stop, dispose, isRunning }
+let glbModelUrl = null;
+let lastLoadedFile = null;
+
+// Expose stop/resume to the non-module script via window
+window.stop3DLoop = function () { if (glbHandle) glbHandle.stop(); };
+window.resume3DLoop = function () { if (glbHandle && window.activeTab === '3d') glbHandle.start(); };
+
+// --- Shared elements (same DOM nodes used by both tabs) ---
+const shared = {
+  mainArea: document.getElementById('main-area'),
+  asciiOutput: document.getElementById('ascii-output'),
+  placeholder: document.getElementById('placeholder'),
+  videoControls: document.getElementById('video-controls'),
+  statusGrid: document.getElementById('status-grid'),
+  statusSource: document.getElementById('status-source'),
+  statusTime: document.getElementById('status-time'),
+};
+
+// --- 3D-specific elements ---
+const els3d = {
+  fileInput: document.getElementById('file-input-3d'),
+  dropZone: document.getElementById('drop-zone-3d'),
+  fileName: document.getElementById('file-name-3d'),
+  autoRotate: document.getElementById('auto-rotate'),
+  rotateSpeed: document.getElementById('rotate-speed'),
+  rotateSpeedVal: document.getElementById('rotate-speed-val'),
+  rotX: document.getElementById('rot-x'),
+  rotXVal: document.getElementById('rot-x-val'),
+  rotY: document.getElementById('rot-y'),
+  rotYVal: document.getElementById('rot-y-val'),
+  rotZ: document.getElementById('rot-z'),
+  rotZVal: document.getElementById('rot-z-val'),
+  density: document.getElementById('density-3d'),
+  densityVal: document.getElementById('density-3d-val'),
+  ramp: document.getElementById('ramp-3d'),
+  colorMode: document.getElementById('color-mode-3d'),
+  fontSize: document.getElementById('font-size-3d'),
+  fontSizeVal: document.getElementById('font-size-3d-val'),
+  lineHeight: document.getElementById('line-height-3d'),
+  lineHeightVal: document.getElementById('line-height-3d-val'),
+  resolution: document.getElementById('resolution-3d'),
+  resolutionVal: document.getElementById('resolution-3d-val'),
+  fps: document.getElementById('fps-3d'),
+  fpsVal: document.getElementById('fps-3d-val'),
+};
+
+// --- Auto-frame camera ---
+function autoFrameCamera(camera, scene, padding = 1.2) {
+  const box = new THREE.Box3();
+  scene.traverse((obj) => { if (obj.isMesh) box.expandByObject(obj); });
+  if (box.isEmpty()) return;
+  const center = new THREE.Vector3();
+  box.getCenter(center);
+  const sphere = new THREE.Sphere();
+  box.getBoundingSphere(sphere);
+  const fovRad = (camera.fov * Math.PI) / 180;
+  const distance = (sphere.radius * padding) / Math.tan(fovRad / 2);
+  camera.position.set(center.x, center.y, center.z + distance);
+  camera.lookAt(center);
+  camera.near = distance / 100;
+  camera.far = distance * 10;
+  camera.updateProjectionMatrix();
+}
+
+// --- flipY helper (WebGL returns bottom-up pixels) ---
+function flipY(buffer, width, height, out) {
+  const rowSize = width * 4;
+  const flipped = out && out.length === buffer.length ? out : new Uint8Array(buffer.length);
+  for (let y = 0; y < height; y++) {
+    const srcRow = (height - 1 - y) * rowSize;
+    const dstRow = y * rowSize;
+    flipped.set(buffer.subarray(srcRow, srcRow + rowSize), dstRow);
+  }
+  return flipped;
+}
+
+// --- Boost saturation of pixel buffer in-place ---
+function boostSaturation(buffer, factor) {
+  for (let i = 0; i < buffer.length; i += 4) {
+    const r = buffer[i], g = buffer[i + 1], b = buffer[i + 2];
+    const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+    buffer[i]     = Math.min(255, Math.round(gray + (r - gray) * factor));
+    buffer[i + 1] = Math.min(255, Math.round(gray + (g - gray) * factor));
+    buffer[i + 2] = Math.min(255, Math.round(gray + (b - gray) * factor));
+  }
+}
+
+// --- imageDataToAsciiGrid (from raw pixel data) ---
+function imageDataToAsciiGrid(imageData, opts) {
+  const { gridCols, gridRows, rampPreset = 'standard', characterDensity = 0.5, invertBrightness = false } = opts;
+  const baseRamp = RAMPS[rampPreset] || RAMPS.standard;
+  const ramp = densityToRampSubset(characterDensity, baseRamp);
+  const { data, width: imgW, height: imgH } = imageData;
+  const grid = [];
+  for (let row = 0; row < gridRows; row++) {
+    const gridRow = [];
+    for (let col = 0; col < gridCols; col++) {
+      const px = Math.floor((col / gridCols) * imgW);
+      const py = Math.floor((row / gridRows) * imgH);
+      const idx = (py * imgW + px) * 4;
+      const r = data[idx], g = data[idx + 1], b = data[idx + 2], a = data[idx + 3];
+      if (a < ALPHA_THRESHOLD) { gridRow.push({ char: ' ', r: 0, g: 0, b: 0, brightness: 0 }); continue; }
+      const brightness = rgbToBrightness(r, g, b);
+      if (brightness < DARK_THRESHOLD) { gridRow.push({ char: ' ', r, g, b, brightness }); continue; }
+      gridRow.push({ char: brightnessToChar(brightness, ramp, invertBrightness), r, g, b, brightness });
+    }
+    grid.push(gridRow);
+  }
+  return grid;
+}
+
+// --- Create GLB renderer ---
+async function createGLBRenderer(modelUrl, getOptions, onFrame) {
+  const scene = new THREE.Scene();
+  scene.background = null;
+  const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
+
+  // Lighting — strong enough so original colors pop in ASCII
+  scene.add(new THREE.AmbientLight(0xffffff, 1.8));
+  const keyLight = new THREE.DirectionalLight(0xffffff, 2.0);
+  keyLight.position.set(5, 10, 7);
+  scene.add(keyLight);
+  const fillLight = new THREE.DirectionalLight(0xffffff, 1.2);
+  fillLight.position.set(-5, 0, -5);
+  scene.add(fillLight);
+  const rimLight = new THREE.DirectionalLight(0xffffff, 1.0);
+  rimLight.position.set(0, -5, 5);
+  scene.add(rimLight);
+  const topLight = new THREE.DirectionalLight(0xffffff, 0.8);
+  topLight.position.set(0, 10, -5);
+  scene.add(topLight);
+
+  // Offscreen renderer
+  const renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true });
+  renderer.setPixelRatio(1);
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 2.2;
+
+  // Load model
+  const loader = new GLTFLoader();
+  const gltf = await new Promise((resolve, reject) => loader.load(modelUrl, resolve, undefined, reject));
+  const model = gltf.scene;
+
+  // Apply initial rotation
+  const opts = getOptions();
+  model.rotation.set(
+    (opts.rotX * Math.PI) / 180,
+    (opts.rotY * Math.PI) / 180,
+    (opts.rotZ * Math.PI) / 180
+  );
+
+  scene.add(model);
+
+  // Set up sizing
+  const initRect = shared.mainArea.getBoundingClientRect();
+  camera.aspect = initRect.width / initRect.height;
+  camera.updateProjectionMatrix();
+  renderer.setSize(initRect.width, initRect.height);
+
+  autoFrameCamera(camera, scene);
+
+  // Pre-allocate reusable buffers (resized when grid changes)
+  let cachedRenderTarget = null;
+  let cachedPixelBuffer = null;
+  let cachedFlipBuffer = null;
+  let cachedSampleW = 0;
+  let cachedSampleH = 0;
+
+  // Cache char dimensions (invalidated when font options change)
+  let cachedCharDims = null;
+  let cachedFontKey = '';
+
+  function getCachedCharDims(font) {
+    const key = `${font.fontSize}|${font.lineHeight}`;
+    if (key !== cachedFontKey) {
+      cachedFontKey = key;
+      cachedCharDims = measureChar(font.fontFamily, font.fontSize, font.lineHeight, shared.mainArea);
+    }
+    return cachedCharDims;
+  }
+
+  function ensureBuffers(sampleW, sampleH) {
+    if (sampleW !== cachedSampleW || sampleH !== cachedSampleH) {
+      if (cachedRenderTarget) cachedRenderTarget.dispose();
+      cachedRenderTarget = new THREE.WebGLRenderTarget(sampleW, sampleH);
+      cachedPixelBuffer = new Uint8Array(sampleW * sampleH * 4);
+      cachedFlipBuffer = new Uint8Array(sampleW * sampleH * 4);
+      cachedSampleW = sampleW;
+      cachedSampleH = sampleH;
+    }
+  }
+
+  let rafId = null;
+  let running = false;
+  let lastFrameTime = 0;
+  let lastTimestamp = 0;
+
+  function tick(timestamp) {
+    if (!running) return;
+    if (lastFrameTime === 0) lastFrameTime = timestamp;
+    if (lastTimestamp === 0) lastTimestamp = timestamp;
+    const opts = getOptions();
+    const frameInterval = 1000 / opts.fps;
+    const elapsed = timestamp - lastFrameTime;
+
+    // Auto-rotate (clamp delta for animation math only)
+    if (opts.autoRotate) {
+      const animDelta = Math.min(timestamp - lastTimestamp, MAX_DELTA_MS);
+      model.rotation.y += (opts.rotateSpeed * Math.PI) / 180 / 1000 * animDelta;
+    }
+    lastTimestamp = timestamp;
+
+    if (elapsed >= frameInterval) {
+      lastFrameTime = timestamp;
+
+      const mainRect = shared.mainArea.getBoundingClientRect();
+      const font = get3DFontOptions();
+      const { charWidth, charHeight } = getCachedCharDims(font);
+      const gridCols = Math.max(1, Math.floor(mainRect.width / charWidth));
+      const gridRows = Math.max(1, Math.floor(mainRect.height / charHeight));
+
+      const sampleW = Math.max(1, Math.round(gridCols * opts.resolution));
+      const sampleH = Math.max(1, Math.round(gridRows * opts.resolution));
+
+      ensureBuffers(sampleW, sampleH);
+
+      renderer.setRenderTarget(cachedRenderTarget);
+      renderer.render(scene, camera);
+      renderer.readRenderTargetPixels(cachedRenderTarget, 0, 0, sampleW, sampleH, cachedPixelBuffer);
+      renderer.setRenderTarget(null);
+
+      const flipped = flipY(cachedPixelBuffer, sampleW, sampleH, cachedFlipBuffer);
+      boostSaturation(flipped, 1.4);
+      const clamped = new Uint8ClampedArray(flipped.length);
+      clamped.set(flipped);
+      const imageData = new ImageData(clamped, sampleW, sampleH);
+
+      const t0 = performance.now();
+      const grid = imageDataToAsciiGrid(imageData, {
+        gridCols,
+        gridRows,
+        rampPreset: opts.ramp,
+        characterDensity: opts.density,
+        invertBrightness: false,
+      });
+
+      onFrame(grid, gridCols, gridRows, performance.now() - t0);
+    }
+
+    rafId = requestAnimationFrame(tick);
+  }
+
+  return {
+    start() {
+      if (running) return;
+      running = true;
+      lastFrameTime = 0;
+      lastTimestamp = 0;
+      rafId = requestAnimationFrame(tick);
+    },
+    stop() {
+      running = false;
+      if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
+    },
+    dispose() {
+      this.stop();
+      if (cachedRenderTarget) cachedRenderTarget.dispose();
+      renderer.dispose();
+      scene.clear();
+    },
+    isRunning() { return running; },
+  };
+}
+
+// --- 3D options getter ---
+function get3DOptions() {
+  return {
+    autoRotate: els3d.autoRotate.checked,
+    rotateSpeed: parseInt(els3d.rotateSpeed.value),
+    rotX: parseInt(els3d.rotX.value),
+    rotY: parseInt(els3d.rotY.value),
+    rotZ: parseInt(els3d.rotZ.value),
+    density: parseFloat(els3d.density.value),
+    ramp: els3d.ramp.value,
+    colorMode: els3d.colorMode.value,
+    resolution: parseFloat(els3d.resolution.value),
+    fps: parseInt(els3d.fps.value),
+  };
+}
+
+function get3DFontOptions() {
+  return {
+    fontSize: parseInt(els3d.fontSize.value),
+    lineHeight: parseFloat(els3d.lineHeight.value),
+    letterSpacing: 0,
+    fontFamily: FONT_FAMILY,
+  };
+}
+
+// --- Handle 3D file ---
+async function handle3DFile(file) {
+  if (glbHandle) { glbHandle.dispose(); glbHandle = null; }
+  if (glbModelUrl) { URL.revokeObjectURL(glbModelUrl); }
+
+  glbModelUrl = URL.createObjectURL(file);
+  els3d.fileName.textContent = file.name;
+  shared.placeholder.style.display = 'none';
+  shared.asciiOutput.style.display = '';
+  shared.videoControls.style.display = 'none';
+  shared.statusSource.textContent = `source: ${file.name} (3D model)`;
+
+  try {
+    glbHandle = await createGLBRenderer(glbModelUrl, get3DOptions, (grid, gridCols, gridRows, dt) => {
+      const paletteId = els3d.colorMode.value;
+      const styled = applyPalette(grid, paletteId);
+      const font = get3DFontOptions();
+      renderToDOM(shared.asciiOutput, styled, font);
+      const palette = getPalette(paletteId);
+      shared.mainArea.style.backgroundColor = palette.background;
+      shared.statusGrid.textContent = `grid: ${gridCols}x${gridRows}`;
+      shared.statusTime.textContent = `time: ${dt.toFixed(1)}ms`;
+    });
+    glbHandle.start();
+  } catch (err) {
+    console.error('Failed to load GLB:', err);
+    shared.statusSource.textContent = `error: ${err.message}`;
+  }
+}
+
+// --- Rerender 3D (on resize) ---
+window.rerender3D = function () {
+  if (window.activeTab !== '3d' || !glbModelUrl || !glbHandle) return;
+  // Dispose and recreate to pick up new dimensions
+  lastLoadedFile && handle3DFile(lastLoadedFile);
+};
+
+// --- 3D File input & drag-and-drop ---
+els3d.fileInput.addEventListener('change', (e) => {
+  if (e.target.files[0]) {
+    lastLoadedFile = e.target.files[0];
+    handle3DFile(e.target.files[0]);
+  }
+});
+els3d.dropZone.addEventListener('dragover', (e) => { e.preventDefault(); els3d.dropZone.classList.add('dragover'); });
+els3d.dropZone.addEventListener('dragleave', () => els3d.dropZone.classList.remove('dragover'));
+els3d.dropZone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  els3d.dropZone.classList.remove('dragover');
+  if (e.dataTransfer.files[0]) {
+    lastLoadedFile = e.dataTransfer.files[0];
+    handle3DFile(e.dataTransfer.files[0]);
+  }
+});
+
+// --- 3D control bindings ---
+function bind3DSlider(slider, display, decimals) {
+  slider.addEventListener('input', () => {
+    display.textContent = parseFloat(slider.value).toFixed(decimals);
+  });
+}
+
+bind3DSlider(els3d.rotateSpeed, els3d.rotateSpeedVal, 0);
+bind3DSlider(els3d.rotX, els3d.rotXVal, 0);
+bind3DSlider(els3d.rotY, els3d.rotYVal, 0);
+bind3DSlider(els3d.rotZ, els3d.rotZVal, 0);
+bind3DSlider(els3d.density, els3d.densityVal, 2);
+bind3DSlider(els3d.fontSize, els3d.fontSizeVal, 0);
+bind3DSlider(els3d.lineHeight, els3d.lineHeightVal, 2);
+bind3DSlider(els3d.resolution, els3d.resolutionVal, 2);
+bind3DSlider(els3d.fps, els3d.fpsVal, 0);
+
+// Controls that require a full rebuild of the renderer
+function rebuild3D() {
+  if (!glbHandle || !lastLoadedFile) return;
+  handle3DFile(lastLoadedFile);
+}
+
+// Rotation sliders & initial rotation changes trigger rebuild
+els3d.rotX.addEventListener('change', rebuild3D);
+els3d.rotY.addEventListener('change', rebuild3D);
+els3d.rotZ.addEventListener('change', rebuild3D);
+
+// These don't need rebuild — they're read each tick
+// autoRotate, rotateSpeed, density, ramp, colorMode, resolution, fps
+// Font changes also don't need rebuild — read each frame
 </script>
 </body>
 </html>
