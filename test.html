@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ASCIIfy Test UI</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0a0a0f;
+    color: #e8e8f0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    padding: 16px 24px;
+    border-bottom: 1px solid #222;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  header h1 {
+    font-size: 20px;
+    font-weight: 600;
+    color: #00ff41;
+    font-family: 'Courier New', monospace;
+  }
+  .layout {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+  .sidebar {
+    width: 280px;
+    min-width: 280px;
+    padding: 16px;
+    border-right: 1px solid #222;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .sidebar h2 {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #666;
+    margin-bottom: 4px;
+  }
+  .control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  label {
+    font-size: 12px;
+    color: #999;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  label span.val {
+    color: #00ff41;
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+  }
+  select, input[type="text"] {
+    background: #1a1a24;
+    border: 1px solid #333;
+    color: #e8e8f0;
+    padding: 6px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    width: 100%;
+  }
+  select:focus, input[type="text"]:focus {
+    outline: none;
+    border-color: #00ff41;
+  }
+  input[type="range"] {
+    width: 100%;
+    accent-color: #00ff41;
+  }
+  input[type="checkbox"] {
+    accent-color: #00ff41;
+  }
+  .checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #999;
+  }
+  .drop-zone {
+    border: 2px dashed #333;
+    border-radius: 8px;
+    padding: 24px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    position: relative;
+  }
+  .drop-zone:hover, .drop-zone.dragover {
+    border-color: #00ff41;
+    background: rgba(0, 255, 65, 0.05);
+  }
+  .drop-zone p {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 4px;
+  }
+  .drop-zone .formats {
+    font-size: 11px;
+    color: #444;
+  }
+  .drop-zone input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+  .file-name {
+    font-size: 11px;
+    color: #00ff41;
+    margin-top: 8px;
+    word-break: break-all;
+    font-family: 'Courier New', monospace;
+  }
+  .main-area {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+  }
+  #ascii-output {
+    margin: 0;
+    padding: 0;
+    white-space: pre;
+    overflow: hidden;
+    font-feature-settings: "liga" 0, "calt" 0;
+    line-height: 1.1;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+  .placeholder-msg {
+    text-align: center;
+    color: #333;
+    font-size: 14px;
+  }
+  .placeholder-msg .icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+    display: block;
+  }
+  .video-controls {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 8px;
+    background: rgba(0,0,0,0.7);
+    padding: 6px 12px;
+    border-radius: 20px;
+    z-index: 10;
+  }
+  .video-controls button {
+    background: none;
+    border: 1px solid #444;
+    color: #e8e8f0;
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .video-controls button:hover {
+    border-color: #00ff41;
+    color: #00ff41;
+  }
+  .status-bar {
+    padding: 6px 24px;
+    border-top: 1px solid #222;
+    font-size: 11px;
+    color: #444;
+    font-family: 'Courier New', monospace;
+    display: flex;
+    gap: 24px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>&gt; ASCIIfy Test UI</h1>
+</header>
+
+<div class="layout">
+  <!-- Sidebar Controls -->
+  <div class="sidebar">
+    <div class="control-group">
+      <h2>Media Source</h2>
+      <div class="drop-zone" id="drop-zone">
+        <p>Drop file or click to upload</p>
+        <div class="formats">PNG, JPG, SVG, MP4, WEBM</div>
+        <input type="file" id="file-input" accept="image/png,image/jpeg,image/svg+xml,image/gif,image/webp,video/mp4,video/webm">
+      </div>
+      <div class="file-name" id="file-name"></div>
+    </div>
+
+    <div class="control-group">
+      <h2>Palette</h2>
+      <select id="palette">
+        <option value="original">Original Colors</option>
+        <option value="classic-green">Classic Green</option>
+        <option value="amber-crt">Amber CRT</option>
+        <option value="cool-blue">Cool Blue</option>
+        <option value="hot-pink">Hot Pink</option>
+        <option value="phosphor-white">Phosphor White</option>
+        <option value="neon-gradient">Neon Gradient</option>
+        <option value="heatmap">Heatmap</option>
+        <option value="dracula">Dracula</option>
+        <option value="solarized">Solarized</option>
+      </select>
+    </div>
+
+    <div class="control-group">
+      <h2>Character Ramp</h2>
+      <select id="ramp-preset">
+        <option value="standard">Standard (70 chars)</option>
+        <option value="simple">Simple (10 chars)</option>
+        <option value="blocks">Blocks</option>
+        <option value="minimal">Minimal</option>
+        <option value="binary">Binary</option>
+        <option value="custom">Custom...</option>
+      </select>
+      <input type="text" id="custom-chars" placeholder="Custom characters (dense to light)" style="display:none">
+    </div>
+
+    <div class="control-group">
+      <h2>Density</h2>
+      <label>Character Density <span class="val" id="density-val">0.50</span></label>
+      <input type="range" id="density" min="0" max="1" step="0.05" value="0.5">
+    </div>
+
+    <div class="control-group">
+      <h2>Fit Mode</h2>
+      <select id="fit-mode">
+        <option value="cover">Cover</option>
+        <option value="contain">Contain</option>
+        <option value="fill">Fill</option>
+        <option value="none">None</option>
+      </select>
+    </div>
+
+    <div class="control-group">
+      <h2>Font</h2>
+      <label>Font Size <span class="val" id="font-size-val">10</span></label>
+      <input type="range" id="font-size" min="4" max="24" step="1" value="10">
+      <label>Line Height <span class="val" id="line-height-val">1.1</span></label>
+      <input type="range" id="line-height" min="0.8" max="2.0" step="0.05" value="1.1">
+      <label>Letter Spacing <span class="val" id="letter-spacing-val">0</span></label>
+      <input type="range" id="letter-spacing" min="-2" max="4" step="0.5" value="0">
+    </div>
+
+    <div class="control-group">
+      <h2>Performance</h2>
+      <label>Resolution Scale <span class="val" id="resolution-val">0.50</span></label>
+      <input type="range" id="resolution" min="0.1" max="1" step="0.05" value="0.5">
+      <label>Target FPS (video) <span class="val" id="fps-val">15</span></label>
+      <input type="range" id="target-fps" min="5" max="60" step="1" value="15">
+    </div>
+
+    <div class="control-group">
+      <h2>Options</h2>
+      <div class="checkbox-row">
+        <input type="checkbox" id="invert-brightness">
+        <label for="invert-brightness">Invert Brightness</label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main ASCII Output -->
+  <div class="main-area" id="main-area">
+    <div class="placeholder-msg" id="placeholder">
+      <span class="icon">&lt;/&gt;</span>
+      Upload an image, SVG, or video to convert to ASCII
+    </div>
+    <pre id="ascii-output" style="display:none"></pre>
+    <div class="video-controls" id="video-controls" style="display:none">
+      <button id="btn-play-pause">Pause</button>
+      <button id="btn-restart">Restart</button>
+    </div>
+  </div>
+</div>
+
+<div class="status-bar" id="status-bar">
+  <span id="status-grid">grid: --</span>
+  <span id="status-source">source: --</span>
+  <span id="status-time">time: --</span>
+</div>
+
+<script>
+// =========================================================================
+// Inlined core engine (from src/)
+// =========================================================================
+
+// --- constants ---
+const ALPHA_THRESHOLD = 128;
+const DARK_THRESHOLD = 0.05;
+const MAX_DELTA_MS = 50;
+const FONT_FEATURE_SETTINGS = '"liga" 0, "calt" 0';
+
+const RAMPS = {
+  standard: '$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,"^\'.` ',
+  simple: '@%#*+=-:. ',
+  blocks: '\u2588\u2593\u2592\u2591 ',
+  minimal: '#=-. ',
+  binary: '\u2588 ',
+};
+
+// --- palettes ---
+const PALETTES = [
+  { id: "classic-green", name: "Classic Green", type: "monochrome", foreground: "#00ff41", background: "#000000" },
+  { id: "amber-crt", name: "Amber CRT", type: "monochrome", foreground: "#ffb000", background: "#1a0800" },
+  { id: "cool-blue", name: "Cool Blue", type: "monochrome", foreground: "#00d4ff", background: "#0a0a1a" },
+  { id: "hot-pink", name: "Hot Pink", type: "monochrome", foreground: "#ff00aa", background: "#0f000a" },
+  { id: "phosphor-white", name: "Phosphor White", type: "monochrome", foreground: "#e8e8f0", background: "#0a0a0f" },
+  { id: "original", name: "Original Colors", type: "original", background: "#000000" },
+  { id: "neon-gradient", name: "Neon Gradient", type: "mapped", colorStops: [
+    { threshold: 0.0, color: "#ff00ff" }, { threshold: 0.5, color: "#00ffff" }, { threshold: 1.0, color: "#ffd700" }
+  ], background: "#0a000a" },
+  { id: "heatmap", name: "Heatmap", type: "mapped", colorStops: [
+    { threshold: 0.0, color: "#0000ff" }, { threshold: 0.5, color: "#ff2200" }, { threshold: 1.0, color: "#ffff00" }
+  ], background: "#000010" },
+  { id: "dracula", name: "Dracula", type: "mapped", colorStops: [
+    { threshold: 0.0, color: "#6272a4" }, { threshold: 0.33, color: "#bd93f9" },
+    { threshold: 0.66, color: "#ff79c6" }, { threshold: 1.0, color: "#f8f8f2" }
+  ], background: "#282a36" },
+  { id: "solarized", name: "Solarized", type: "mapped", colorStops: [
+    { threshold: 0.0, color: "#073642" }, { threshold: 0.25, color: "#268bd2" },
+    { threshold: 0.5, color: "#2aa198" }, { threshold: 0.75, color: "#b58900" }, { threshold: 1.0, color: "#fdf6e3" }
+  ], background: "#002b36" },
+];
+
+const PALETTE_MAP = new Map(PALETTES.map(p => [p.id, p]));
+function getPalette(id) { return PALETTE_MAP.get(id) || PALETTES[0]; }
+
+// --- char-ramp ---
+function rgbToBrightness(r, g, b) { return (0.299 * r + 0.587 * g + 0.114 * b) / 255; }
+
+function densityToRampSubset(density, ramp) {
+  const clamped = Math.max(0, Math.min(1, density));
+  const minChars = 2;
+  const targetLen = Math.round(minChars + clamped * (ramp.length - minChars));
+  if (targetLen >= ramp.length) return ramp;
+  const step = (ramp.length - 1) / (targetLen - 1);
+  let result = '';
+  for (let i = 0; i < targetLen; i++) result += ramp[Math.round(i * step)];
+  return result;
+}
+
+function brightnessToChar(brightness, ramp, invert = false) {
+  const b = invert ? 1 - brightness : brightness;
+  const idx = Math.min(ramp.length - 1, Math.floor((1 - b) * ramp.length));
+  return ramp[idx];
+}
+
+// --- fit-modes ---
+function computeFit(srcW, srcH, dstW, dstH, mode) {
+  switch (mode) {
+    case 'cover': {
+      const scale = Math.max(dstW / srcW, dstH / srcH);
+      const scaledW = srcW * scale, scaledH = srcH * scale;
+      const cropX = (scaledW - dstW) / 2 / scale, cropY = (scaledH - dstH) / 2 / scale;
+      return { sx: cropX, sy: cropY, sw: dstW / scale, sh: dstH / scale, dx: 0, dy: 0, dw: dstW, dh: dstH };
+    }
+    case 'contain': {
+      const scale = Math.min(dstW / srcW, dstH / srcH);
+      const sw = srcW * scale, sh = srcH * scale;
+      return { sx: 0, sy: 0, sw: srcW, sh: srcH, dx: (dstW - sw) / 2, dy: (dstH - sh) / 2, dw: sw, dh: sh };
+    }
+    case 'fill':
+      return { sx: 0, sy: 0, sw: srcW, sh: srcH, dx: 0, dy: 0, dw: dstW, dh: dstH };
+    case 'none': {
+      const ox = (dstW - srcW) / 2, oy = (dstH - srcH) / 2;
+      const vsx = Math.max(0, -ox), vsy = Math.max(0, -oy);
+      const vsw = Math.min(srcW, dstW - Math.max(0, ox)), vsh = Math.min(srcH, dstH - Math.max(0, oy));
+      return { sx: vsx, sy: vsy, sw: vsw, sh: vsh, dx: Math.max(0, ox), dy: Math.max(0, oy), dw: vsw, dh: vsh };
+    }
+  }
+}
+
+// --- color-engine ---
+function hexToRgb(hex) {
+  const c = hex.replace('#', '');
+  return { r: parseInt(c.slice(0, 2), 16), g: parseInt(c.slice(2, 4), 16), b: parseInt(c.slice(4, 6), 16) };
+}
+function rgbToHex(r, g, b) {
+  const h = n => Math.round(n).toString(16).padStart(2, '0');
+  return `#${h(r)}${h(g)}${h(b)}`;
+}
+function lerpColor(a, b, t) {
+  const ca = hexToRgb(a), cb = hexToRgb(b);
+  return rgbToHex(ca.r + (cb.r - ca.r) * t, ca.g + (cb.g - ca.g) * t, ca.b + (cb.b - ca.b) * t);
+}
+function sampleGradient(stops, brightness) {
+  if (!stops || stops.length === 0) return '#ffffff';
+  if (brightness <= stops[0].threshold) return stops[0].color;
+  if (brightness >= stops[stops.length - 1].threshold) return stops[stops.length - 1].color;
+  for (let i = 0; i < stops.length - 1; i++) {
+    if (brightness >= stops[i].threshold && brightness <= stops[i + 1].threshold) {
+      const t = (brightness - stops[i].threshold) / (stops[i + 1].threshold - stops[i].threshold);
+      return lerpColor(stops[i].color, stops[i + 1].color, t);
+    }
+  }
+  return stops[stops.length - 1].color;
+}
+
+function applyPalette(grid, paletteId) {
+  const palette = typeof paletteId === 'string' ? getPalette(paletteId) : paletteId;
+  return grid.map(row => row.map(cell => {
+    let color;
+    switch (palette.type) {
+      case 'monochrome': color = palette.foreground || '#ffffff'; break;
+      case 'original': color = rgbToHex(cell.r, cell.g, cell.b); break;
+      case 'mapped': color = sampleGradient(palette.colorStops, cell.brightness); break;
+      default: color = '#ffffff';
+    }
+    return { ...cell, color, background: palette.background };
+  }));
+}
+
+// --- image-to-ascii ---
+function imageToAsciiGrid(source, containerW, containerH, opts) {
+  const {
+    gridCols, gridRows, rampPreset = 'standard', customCharacters,
+    characterDensity = 0.5, invertBrightness = false, fitMode = 'cover', resolutionScale = 0.5,
+  } = opts;
+
+  const baseRamp = customCharacters
+    ? (customCharacters.endsWith(' ') ? customCharacters : customCharacters + ' ')
+    : (RAMPS[rampPreset] || RAMPS.standard);
+  const ramp = densityToRampSubset(characterDensity, baseRamp);
+
+  const srcW = source.naturalWidth || source.width;
+  const srcH = source.naturalHeight || source.height;
+  const sampleW = Math.max(1, Math.round(containerW * resolutionScale));
+  const sampleH = Math.max(1, Math.round(containerH * resolutionScale));
+
+  const canvas = document.createElement('canvas');
+  canvas.width = sampleW; canvas.height = sampleH;
+  const ctx = canvas.getContext('2d');
+
+  const fit = computeFit(srcW, srcH, sampleW, sampleH, fitMode);
+  ctx.clearRect(0, 0, sampleW, sampleH);
+  ctx.drawImage(source, fit.sx, fit.sy, fit.sw, fit.sh, fit.dx, fit.dy, fit.dw, fit.dh);
+
+  const imageData = ctx.getImageData(0, 0, sampleW, sampleH);
+  const data = imageData.data;
+  const grid = [];
+
+  for (let row = 0; row < gridRows; row++) {
+    const gridRow = [];
+    for (let col = 0; col < gridCols; col++) {
+      const px = Math.floor((col / gridCols) * sampleW);
+      const py = Math.floor((row / gridRows) * sampleH);
+      const idx = (py * sampleW + px) * 4;
+      const r = data[idx], g = data[idx + 1], b = data[idx + 2], a = data[idx + 3];
+
+      if (a < ALPHA_THRESHOLD) { gridRow.push({ char: ' ', r: 0, g: 0, b: 0, brightness: 0 }); continue; }
+      const brightness = rgbToBrightness(r, g, b);
+      if (brightness < DARK_THRESHOLD) { gridRow.push({ char: ' ', r, g, b, brightness }); continue; }
+      gridRow.push({ char: brightnessToChar(brightness, ramp, invertBrightness), r, g, b, brightness });
+    }
+    grid.push(gridRow);
+  }
+  return grid;
+}
+
+// --- grid-renderer (DOM) ---
+function renderToDOM(pre, grid, opts) {
+  const { fontSize, lineHeight, letterSpacing, fontFamily } = opts;
+  const s = pre.style;
+  s.fontSize = fontSize + 'px';
+  s.lineHeight = String(lineHeight);
+  s.letterSpacing = letterSpacing + 'px';
+  s.fontFamily = fontFamily;
+  s.fontFeatureSettings = FONT_FEATURE_SETTINGS;
+  s.margin = '0'; s.padding = '0'; s.whiteSpace = 'pre'; s.overflow = 'hidden';
+
+  const fragment = document.createDocumentFragment();
+  for (let r = 0; r < grid.length; r++) {
+    const row = grid[r];
+    let spanStart = 0;
+    while (spanStart < row.length) {
+      const curColor = row[spanStart].color;
+      let spanEnd = spanStart + 1;
+      while (spanEnd < row.length && row[spanEnd].color === curColor) spanEnd++;
+      let text = '';
+      for (let c = spanStart; c < spanEnd; c++) text += row[c].char;
+      const span = document.createElement('span');
+      span.style.color = curColor;
+      span.textContent = text;
+      fragment.appendChild(span);
+      spanStart = spanEnd;
+    }
+    if (r < grid.length - 1) fragment.appendChild(document.createTextNode('\n'));
+  }
+  pre.innerHTML = '';
+  pre.appendChild(fragment);
+}
+
+// --- measure char dimensions ---
+function measureChar(fontFamily, fontSize, lineHeight, container) {
+  const probe = document.createElement('span');
+  probe.style.position = 'absolute'; probe.style.visibility = 'hidden';
+  probe.style.whiteSpace = 'pre'; probe.style.fontFamily = fontFamily;
+  probe.style.fontSize = fontSize + 'px'; probe.style.lineHeight = String(lineHeight);
+  probe.style.fontFeatureSettings = FONT_FEATURE_SETTINGS;
+  probe.textContent = 'M';
+  container.appendChild(probe);
+  const rect = probe.getBoundingClientRect();
+  container.removeChild(probe);
+  return { charWidth: rect.width || fontSize * 0.6, charHeight: rect.height || fontSize * lineHeight };
+}
+
+
+// =========================================================================
+// UI Controller
+// =========================================================================
+
+const fontFamily = '"Courier New", Courier, "Lucida Console", monospace';
+
+const els = {
+  fileInput: document.getElementById('file-input'),
+  dropZone: document.getElementById('drop-zone'),
+  fileName: document.getElementById('file-name'),
+  palette: document.getElementById('palette'),
+  rampPreset: document.getElementById('ramp-preset'),
+  customChars: document.getElementById('custom-chars'),
+  density: document.getElementById('density'),
+  densityVal: document.getElementById('density-val'),
+  fitMode: document.getElementById('fit-mode'),
+  fontSize: document.getElementById('font-size'),
+  fontSizeVal: document.getElementById('font-size-val'),
+  lineHeight: document.getElementById('line-height'),
+  lineHeightVal: document.getElementById('line-height-val'),
+  letterSpacing: document.getElementById('letter-spacing'),
+  letterSpacingVal: document.getElementById('letter-spacing-val'),
+  resolution: document.getElementById('resolution'),
+  resolutionVal: document.getElementById('resolution-val'),
+  targetFps: document.getElementById('target-fps'),
+  fpsVal: document.getElementById('fps-val'),
+  invertBrightness: document.getElementById('invert-brightness'),
+  mainArea: document.getElementById('main-area'),
+  asciiOutput: document.getElementById('ascii-output'),
+  placeholder: document.getElementById('placeholder'),
+  videoControls: document.getElementById('video-controls'),
+  btnPlayPause: document.getElementById('btn-play-pause'),
+  btnRestart: document.getElementById('btn-restart'),
+  statusGrid: document.getElementById('status-grid'),
+  statusSource: document.getElementById('status-source'),
+  statusTime: document.getElementById('status-time'),
+};
+
+// State
+let currentSource = null; // { type: 'image' | 'video', element: HTMLImageElement | HTMLVideoElement }
+let videoLoop = null;
+let videoRunning = false;
+
+function getOptions() {
+  const rampPreset = els.rampPreset.value;
+  const customCharacters = rampPreset === 'custom' ? els.customChars.value : '';
+  return {
+    rampPreset: rampPreset === 'custom' ? 'standard' : rampPreset,
+    customCharacters: rampPreset === 'custom' ? customCharacters : '',
+    characterDensity: parseFloat(els.density.value),
+    invertBrightness: els.invertBrightness.checked,
+    fitMode: els.fitMode.value,
+    resolutionScale: parseFloat(els.resolution.value),
+    targetFps: parseInt(els.targetFps.value),
+  };
+}
+
+function getFontOptions() {
+  return {
+    fontSize: parseInt(els.fontSize.value),
+    lineHeight: parseFloat(els.lineHeight.value),
+    letterSpacing: parseFloat(els.letterSpacing.value),
+    fontFamily,
+  };
+}
+
+function renderImage() {
+  if (!currentSource || currentSource.type !== 'image') return;
+
+  const mainRect = els.mainArea.getBoundingClientRect();
+  const font = getFontOptions();
+  const { charWidth, charHeight } = measureChar(font.fontFamily, font.fontSize, font.lineHeight, els.mainArea);
+  const gridCols = Math.max(1, Math.floor(mainRect.width / charWidth));
+  const gridRows = Math.max(1, Math.floor(mainRect.height / charHeight));
+
+  const opts = getOptions();
+  const t0 = performance.now();
+  const grid = imageToAsciiGrid(currentSource.element, mainRect.width, mainRect.height, {
+    gridCols, gridRows, ...opts,
+  });
+  const styled = applyPalette(grid, els.palette.value);
+  renderToDOM(els.asciiOutput, styled, font);
+  const dt = (performance.now() - t0).toFixed(1);
+
+  const palette = getPalette(els.palette.value);
+  els.mainArea.style.backgroundColor = palette.background;
+  els.statusGrid.textContent = `grid: ${gridCols}x${gridRows}`;
+  els.statusTime.textContent = `time: ${dt}ms`;
+}
+
+function startVideoLoop() {
+  if (!currentSource || currentSource.type !== 'video') return;
+  stopVideoLoop();
+
+  const video = currentSource.element;
+  const font = getFontOptions();
+  const mainRect = els.mainArea.getBoundingClientRect();
+  const { charWidth, charHeight } = measureChar(font.fontFamily, font.fontSize, font.lineHeight, els.mainArea);
+  const gridCols = Math.max(1, Math.floor(mainRect.width / charWidth));
+  const gridRows = Math.max(1, Math.floor(mainRect.height / charHeight));
+
+  const opts = getOptions();
+  const paletteId = els.palette.value;
+  const palette = getPalette(paletteId);
+  els.mainArea.style.backgroundColor = palette.background;
+  els.statusGrid.textContent = `grid: ${gridCols}x${gridRows}`;
+
+  const frameInterval = 1000 / opts.targetFps;
+  let lastFrameTime = 0;
+  let rafId = null;
+  videoRunning = true;
+
+  function tick(timestamp) {
+    if (!videoRunning) return;
+    const delta = Math.min(timestamp - lastFrameTime, MAX_DELTA_MS);
+    if (delta >= frameInterval) {
+      lastFrameTime = timestamp;
+      if (video.readyState >= 2 && video.videoWidth > 0) {
+        // Capture frame
+        const sampleW = Math.max(1, Math.round(mainRect.width * opts.resolutionScale));
+        const sampleH = Math.max(1, Math.round(mainRect.height * opts.resolutionScale));
+        const canvas = document.createElement('canvas');
+        canvas.width = sampleW; canvas.height = sampleH;
+        const ctx = canvas.getContext('2d');
+        const fit = computeFit(video.videoWidth, video.videoHeight, sampleW, sampleH, opts.fitMode);
+        ctx.clearRect(0, 0, sampleW, sampleH);
+        ctx.drawImage(video, fit.sx, fit.sy, fit.sw, fit.sh, fit.dx, fit.dy, fit.dw, fit.dh);
+        const imageData = ctx.getImageData(0, 0, sampleW, sampleH);
+
+        const baseRamp = opts.customCharacters
+          ? (opts.customCharacters.endsWith(' ') ? opts.customCharacters : opts.customCharacters + ' ')
+          : (RAMPS[opts.rampPreset] || RAMPS.standard);
+        const ramp = densityToRampSubset(opts.characterDensity, baseRamp);
+        const data = imageData.data;
+        const grid = [];
+        for (let row = 0; row < gridRows; row++) {
+          const gridRow = [];
+          for (let col = 0; col < gridCols; col++) {
+            const px = Math.floor((col / gridCols) * sampleW);
+            const py = Math.floor((row / gridRows) * sampleH);
+            const idx = (py * sampleW + px) * 4;
+            const r = data[idx], g = data[idx+1], b = data[idx+2], a = data[idx+3];
+            if (a < ALPHA_THRESHOLD) { gridRow.push({ char: ' ', r: 0, g: 0, b: 0, brightness: 0 }); continue; }
+            const brightness = rgbToBrightness(r, g, b);
+            if (brightness < DARK_THRESHOLD) { gridRow.push({ char: ' ', r, g, b, brightness }); continue; }
+            gridRow.push({ char: brightnessToChar(brightness, ramp, opts.invertBrightness), r, g, b, brightness });
+          }
+          grid.push(gridRow);
+        }
+
+        const styled = applyPalette(grid, paletteId);
+        const t0 = performance.now();
+        renderToDOM(els.asciiOutput, styled, font);
+        els.statusTime.textContent = `time: ${(performance.now() - t0).toFixed(1)}ms`;
+      }
+    }
+    rafId = requestAnimationFrame(tick);
+  }
+
+  videoLoop = {
+    stop() { videoRunning = false; if (rafId) cancelAnimationFrame(rafId); },
+  };
+  rafId = requestAnimationFrame(tick);
+}
+
+function stopVideoLoop() {
+  if (videoLoop) { videoLoop.stop(); videoLoop = null; }
+  videoRunning = false;
+}
+
+// --- File handling ---
+function handleFile(file) {
+  stopVideoLoop();
+  const url = URL.createObjectURL(file);
+  els.fileName.textContent = file.name;
+
+  if (file.type.startsWith('video/')) {
+    const video = document.createElement('video');
+    video.src = url;
+    video.muted = true;
+    video.loop = true;
+    video.playsInline = true;
+    video.addEventListener('loadeddata', () => {
+      currentSource = { type: 'video', element: video };
+      els.placeholder.style.display = 'none';
+      els.asciiOutput.style.display = '';
+      els.videoControls.style.display = '';
+      els.statusSource.textContent = `source: ${video.videoWidth}x${video.videoHeight} video`;
+      video.play();
+      startVideoLoop();
+    });
+  } else {
+    // Image or SVG
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      currentSource = { type: 'image', element: img };
+      els.placeholder.style.display = 'none';
+      els.asciiOutput.style.display = '';
+      els.videoControls.style.display = 'none';
+      els.statusSource.textContent = `source: ${img.naturalWidth}x${img.naturalHeight} image`;
+      renderImage();
+    };
+    img.src = url;
+  }
+}
+
+// --- Event listeners ---
+
+// File input & drag-and-drop
+els.fileInput.addEventListener('change', (e) => {
+  if (e.target.files[0]) handleFile(e.target.files[0]);
+});
+els.dropZone.addEventListener('dragover', (e) => { e.preventDefault(); els.dropZone.classList.add('dragover'); });
+els.dropZone.addEventListener('dragleave', () => els.dropZone.classList.remove('dragover'));
+els.dropZone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  els.dropZone.classList.remove('dragover');
+  if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+});
+
+// Ramp preset toggle custom input
+els.rampPreset.addEventListener('change', () => {
+  els.customChars.style.display = els.rampPreset.value === 'custom' ? '' : 'none';
+  rerender();
+});
+
+// Slider value displays
+function bindSlider(slider, display, rerender) {
+  slider.addEventListener('input', () => { display.textContent = parseFloat(slider.value).toFixed(slider.step.includes('.') ? 2 : 0); rerender(); });
+}
+
+function rerender() {
+  if (!currentSource) return;
+  if (currentSource.type === 'image') renderImage();
+  else if (currentSource.type === 'video') { stopVideoLoop(); startVideoLoop(); }
+}
+
+bindSlider(els.density, els.densityVal, rerender);
+bindSlider(els.fontSize, els.fontSizeVal, rerender);
+bindSlider(els.lineHeight, els.lineHeightVal, rerender);
+bindSlider(els.letterSpacing, els.letterSpacingVal, rerender);
+bindSlider(els.resolution, els.resolutionVal, rerender);
+bindSlider(els.targetFps, els.fpsVal, rerender);
+
+els.palette.addEventListener('change', rerender);
+els.fitMode.addEventListener('change', rerender);
+els.invertBrightness.addEventListener('change', rerender);
+els.customChars.addEventListener('input', rerender);
+
+// Video controls
+els.btnPlayPause.addEventListener('click', () => {
+  if (!currentSource || currentSource.type !== 'video') return;
+  const video = currentSource.element;
+  if (video.paused) { video.play(); startVideoLoop(); els.btnPlayPause.textContent = 'Pause'; }
+  else { video.pause(); stopVideoLoop(); els.btnPlayPause.textContent = 'Play'; }
+});
+els.btnRestart.addEventListener('click', () => {
+  if (!currentSource || currentSource.type !== 'video') return;
+  currentSource.element.currentTime = 0;
+  currentSource.element.play();
+  stopVideoLoop();
+  startVideoLoop();
+  els.btnPlayPause.textContent = 'Pause';
+});
+
+// Resize
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(rerender, 150);
+});
+</script>
+</body>
+</html>

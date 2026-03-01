@@ -20,7 +20,7 @@ interface UseResizeDebounceOptions {
  * website monorepo: temporarily inserting a probe span, measuring it, removing.
  */
 export function useResizeDebounce(
-  containerRef: React.RefObject<HTMLElement>,
+  containerRef: React.RefObject<HTMLElement | null>,
   options: UseResizeDebounceOptions = {}
 ): ContainerSize {
   const {

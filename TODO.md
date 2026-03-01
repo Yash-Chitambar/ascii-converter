@@ -1,0 +1,50 @@
+# TODO — ASCIIfy
+
+## Status: All P0 & P2 Complete, TypeScript Passes, 45 Tests Pass
+
+---
+
+### P0 — TypeScript Compilation Fixes
+- [x] Fix `video-to-ascii.ts` — replace `require()` with ES import
+- [x] Fix `useViewportAware.ts` — RefObject type needs `| null` for React 19
+- [x] Fix `useResizeDebounce.ts` — RefObject type needs `| null` for React 19
+- [x] Fix `glb-to-ascii.ts` — `dispose()` this-context binding issue
+- [x] Fix `glb-to-ascii.ts` — ImageData Uint8ClampedArray buffer type
+- [x] Fix `index.tsx` — Framer hidden callback prop types
+- [x] Add `declarations.d.ts` for Framer CDN module types
+- [x] Add `.gitignore`
+- [x] Install dependencies & verify `tsc --noEmit` passes
+
+### P1 — Build & Package
+- [x] Verify `npm run typecheck` passes cleanly
+- [ ] Add proper build script (bundler: tsup, esbuild, or rollup)
+- [ ] Generate `dist/` output (CJS + ESM + types)
+- [ ] Publish to npm
+
+### P2 — Testing
+- [x] Add test runner (vitest)
+- [x] Unit tests for `core/char-ramp.ts` — 25 tests (brightness, ramp subset, char lookup, transparency, dark threshold)
+- [x] Unit tests for `core/fit-modes.ts` — 10 tests (cover, contain, fill, none)
+- [x] Unit tests for `core/color-engine.ts` — 10 tests (monochrome, original, mapped, fallback, grid structure)
+- [ ] Unit tests for `core/image-to-ascii.ts` (requires DOM/canvas mocking)
+- [ ] Component tests for ASCIIfy, ASCIIfy3D, ASCIICanvas (requires React test env)
+
+### P3 — Polish
+- [ ] Optimize ASCIIfy3D pause/resume (store handle in ref, call stop/start on visibility change)
+- [ ] Add README with usage examples and screenshots
+- [ ] Storybook or demo page
+
+---
+
+## Completed
+- All 20 source files implemented per PLAN.md
+- All 10 color palettes
+- All 5 character ramp presets
+- Image, video, webcam, and 3D GLB conversion pipelines
+- CRT post-processing effects
+- Framer property controls with conditional visibility
+- Accessibility (ARIA, reduced-motion, keyboard)
+- Performance (viewport-aware, resolution scaling, debounced resize, RAF throttling)
+- Standalone test UI (`test.html`)
+- TypeScript compiles with zero errors (`tsc --noEmit`)
+- 45 unit tests passing across 3 test suites

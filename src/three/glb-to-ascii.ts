@@ -149,11 +149,9 @@ export async function createGLBToAsciiRenderer(
       // WebGL reads pixels bottom-up — flip vertically
       const flipped = flipY(pixelBuffer, sampleW, sampleH);
 
-      const imageData = new ImageData(
-        new Uint8ClampedArray(flipped.buffer),
-        sampleW,
-        sampleH
-      );
+      const clamped = new Uint8ClampedArray(flipped.length);
+      clamped.set(flipped);
+      const imageData = new ImageData(clamped, sampleW, sampleH);
 
       const grid = imageDataToAsciiGrid(imageData, {
         gridCols,
@@ -170,23 +168,27 @@ export async function createGLBToAsciiRenderer(
     rafId = requestAnimationFrame(tick);
   }
 
+  function start() {
+    if (running) return;
+    running = true;
+    lastFrameTime = 0;
+    lastTimestamp = 0;
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function stop() {
+    running = false;
+    if (rafId !== null) {
+      cancelAnimationFrame(rafId);
+      rafId = null;
+    }
+  }
+
   return {
-    start() {
-      if (running) return;
-      running = true;
-      lastFrameTime = 0;
-      lastTimestamp = 0;
-      rafId = requestAnimationFrame(tick);
-    },
-    stop() {
-      running = false;
-      if (rafId !== null) {
-        cancelAnimationFrame(rafId);
-        rafId = null;
-      }
-    },
+    start,
+    stop,
     dispose() {
-      this.stop();
+      stop();
       renderTarget.dispose();
       renderer.dispose();
       scene.clear();

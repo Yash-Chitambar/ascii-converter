@@ -16,7 +16,7 @@ interface UseViewportAwareOptions {
  * (RAF loops, video playback) to save CPU.
  */
 export function useViewportAware(
-  ref: React.RefObject<Element>,
+  ref: React.RefObject<Element | null>,
   options: UseViewportAwareOptions = {}
 ): { isVisible: boolean } {
   const {
