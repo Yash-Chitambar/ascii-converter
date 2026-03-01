@@ -8,15 +8,13 @@ This file documents the codebase structure, conventions, and development workflo
 
 **ASCIIfy** is a high-performance Framer component that converts images, videos, and 3D GLB models into dynamic ASCII art in real time. It is built for the Framer ecosystem with full property panel integration, responsive layout, and accessibility support.
 
-The project is currently in the **planning/scaffolding stage**. The authoritative design document is `PLAN.md`. No source files have been written yet — implementation follows the phased plan described there.
+All 20 source files are implemented per `PLAN.md`. The project includes a standalone test UI (`test.html`) with tabbed support for Image/Video and 3D GLB model rendering. TypeScript compiles cleanly and 45 unit tests pass.
 
 The core ASCII conversion logic is ported and extended from the `@yash-chitambar/ascii-converter` package inside a personal website monorepo.
 
 ---
 
-## Intended Repository Layout
-
-Once implemented, the source tree will be:
+## Repository Layout
 
 ```
 ascii-converter/
@@ -52,7 +50,9 @@ ascii-converter/
 │       ├── useViewportAware.ts      # IntersectionObserver for viewport-based pause
 │       └── useResizeDebounce.ts     # Debounced container resize handling
 │
+├── test.html                        # Standalone test UI (Image/Video + 3D GLB tabs)
 ├── PLAN.md                          # Canonical implementation plan (source of truth)
+├── TODO.md                          # Task tracking
 ├── CLAUDE.md                        # This file
 ├── package.json
 ├── tsconfig.json
@@ -161,7 +161,7 @@ These patterns are ported from the proven personal website implementation and mu
 
 4. **Dark threshold:** Skip pixels with `brightness < 0.05` (skip near-black, output space).
 
-5. **RAF throttling:** Use `Math.min(delta, 50)` to clamp delta time and prevent explosion after tab switch.
+5. **RAF throttling:** Use `Math.min(delta, 50)` to clamp delta time for **animation math only** (e.g., rotation speed), preventing jumps after tab switch. Do **not** use the clamped delta for frame interval scheduling — use raw elapsed time for that, otherwise frames will never render when `frameInterval > 50ms` (e.g., 15fps = 66.7ms).
 
 6. **Direct DOM mutation:** Use `element.textContent = string` for output updates, not React state, to bypass React's reconciler overhead.
 
@@ -230,6 +230,26 @@ All components must:
 - Support `prefers-contrast: more`: force maximum density ramp.
 - Have a focusable container (`tabindex="0"`) with keyboard shortcuts for video (Space = play/pause).
 - Announce video state changes via an `aria-live` region.
+
+---
+
+## Test UI (`test.html`)
+
+A standalone HTML file for testing both the Image/Video and 3D GLB ASCII pipelines without Framer. Serve via HTTP (e.g., `python3 -m http.server`) — do not open via `file://` as ES modules and video loading may fail.
+
+**Architecture:**
+- Two tabs: "Image / Video" (default) and "3D Model"
+- Regular `<script>` contains the inlined core engine (ramps, palettes, color engine, image-to-ascii, grid renderer, measureChar)
+- Core engine functions are exposed on `window` for cross-scope access
+- ES module `<script type="module">` imports Three.js via import map (CDN v0.170.0) for the 3D pipeline
+- Shared DOM elements (`mainArea`, `asciiOutput`, `placeholder`, status bar) are referenced via a `shared` object in the module
+
+**3D pipeline in test.html:**
+- `autoFrameCamera` — bounding box → camera positioning
+- `createGLBRenderer` — GLTFLoader → offscreen WebGLRenderer → RAF loop → readRenderTargetPixels → flipY → saturation boost → ASCII grid → palette → DOM render
+- Enhanced lighting (4 directional + ambient, ACES filmic tone mapping, 2.2x exposure) for vivid original colors
+- Per-frame buffer reuse: `WebGLRenderTarget`, pixel buffer, and flip buffer are allocated once and reused
+- Cached `measureChar` results per font configuration
 
 ---
 

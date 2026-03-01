@@ -1,6 +1,6 @@
 # TODO — ASCIIfy
 
-## Status: All P0 & P2 Complete, TypeScript Passes, 45 Tests Pass
+## Status: All P0–P2 Complete, 3D Test UI Done, TypeScript Passes, 45 Tests Pass
 
 ---
 
@@ -32,7 +32,7 @@
 ### P3 — Polish
 - [ ] Optimize ASCIIfy3D pause/resume (store handle in ref, call stop/start on visibility change)
 - [ ] Add README with usage examples and screenshots
-- [ ] Storybook or demo page
+- [x] Interactive test UI with 3D GLB tab (`test.html`)
 
 ---
 
@@ -45,6 +45,9 @@
 - Framer property controls with conditional visibility
 - Accessibility (ARIA, reduced-motion, keyboard)
 - Performance (viewport-aware, resolution scaling, debounced resize, RAF throttling)
-- Standalone test UI (`test.html`)
+- Standalone test UI (`test.html`) with tabbed Image/Video and 3D Model support
+- 3D test UI: GLB/GLTF file loading via Three.js (CDN), auto-frame camera, auto-rotate, enhanced lighting with ACES tone mapping, saturation boost for vivid original colors
+- Video frame scheduling fix: use raw elapsed time instead of MAX_DELTA_MS-clamped delta
+- Per-frame buffer reuse (WebGLRenderTarget, pixel buffers), cached char measurement
 - TypeScript compiles with zero errors (`tsc --noEmit`)
 - 45 unit tests passing across 3 test suites

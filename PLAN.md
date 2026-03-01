@@ -1,5 +1,9 @@
 # ASCIIfy — Framer ASCII Art Component
 
+## Status
+
+**All phases implemented.** All 20 source files are complete. TypeScript compiles cleanly. 45 unit tests pass. Standalone test UI (`test.html`) supports both Image/Video and 3D GLB model rendering with full control panels.
+
 ## Overview
 
 ASCIIfy is a high-performance Framer component that converts images and videos into dynamic ASCII art in real time. It also includes a 3D ASCII Viewer that renders GLB models as animated ASCII art. Both components are designed for the Framer ecosystem with full property panel integration, responsive layout, and accessibility support.
@@ -581,7 +585,7 @@ New optimizations:
 2. **Character ramp direction:** Dense chars for bright pixels on dark backgrounds
 3. **Alpha threshold:** Skip pixels with alpha < 128
 4. **Dark threshold:** Skip pixels with brightness < 0.05
-5. **RAF throttling:** ~30fps cap with `Math.min(delta, 50)` clamping
+5. **RAF throttling:** `Math.min(delta, 50)` clamping for **animation math only** (not frame scheduling — use raw elapsed time for interval checks)
 6. **Direct DOM mutation:** `element.textContent = string` instead of React state for render output
 7. **Font feature settings:** `"liga" 0, "calt" 0` to disable ligatures in monospace rendering
 8. **Character measurement:** Hidden span technique for measuring monospace char dimensions
