@@ -2,7 +2,9 @@ import { useEffect, useRef, useCallback, useState } from "react";
 import type { StyledAsciiGrid, MediaType, FitMode, RampPreset } from "../types";
 import { imageToAsciiGrid } from "../core/image-to-ascii";
 import { createVideoAsciiLoop, createWebcamVideo } from "../core/video-to-ascii";
-import { applyPaletteById } from "../core/color-engine";
+import { applyPaletteById, buildColorLUT, applyPaletteWithLUT } from "../core/color-engine";
+import { buildCharLUT, getRamp, densityToRampSubset } from "../core/char-ramp";
+import { getPalette } from "../palettes";
 
 // ---------------------------------------------------------------------------
 // Options
@@ -70,6 +72,33 @@ export function useASCIIConverter(
   const loopRef = useRef<ReturnType<typeof createVideoAsciiLoop> | null>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
 
+  // ── LUT caching refs ────────────────────────────────────────────────────
+  const charLUTRef = useRef<string[] | null>(null);
+  const colorLUTRef = useRef<string[] | null>(null);
+  const colorLUTBackground = useRef<string>("#000000");
+  const prevRampKey = useRef<string>("");
+  const prevPaletteId = useRef<string>("");
+
+  // Rebuild char LUT when ramp/density/invert changes
+  const rampKey = `${rampPreset}|${customCharacters ?? ""}|${characterDensity}|${invertBrightness}`;
+  if (rampKey !== prevRampKey.current) {
+    const baseRamp = customCharacters
+      ? (customCharacters.endsWith(" ") ? customCharacters : customCharacters + " ")
+      : getRamp(rampPreset as string);
+    const ramp = densityToRampSubset(characterDensity, baseRamp);
+    charLUTRef.current = buildCharLUT(ramp, invertBrightness);
+    prevRampKey.current = rampKey;
+  }
+
+  // Rebuild color LUT when palette changes
+  if (paletteId !== prevPaletteId.current) {
+    const p = getPalette(paletteId);
+    colorLUTRef.current = buildColorLUT(p);
+    colorLUTBackground.current = p.background;
+    prevPaletteId.current = paletteId;
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+
   // Shared conversion options object (rebuilt on every option change)
   const conversionOpts = {
     gridCols,
@@ -88,8 +117,13 @@ export function useASCIIConverter(
   // -------------------------------------------------------------------------
 
   const applyAndSet = useCallback(
-    (rawGrid: ReturnType<typeof imageToAsciiGrid>) => {
-      setGrid(applyPaletteById(rawGrid, paletteId));
+    (rawGrid: import("../types").AsciiGrid) => {
+      // Use LUT fast path when available
+      if (colorLUTRef.current !== undefined) {
+        setGrid(applyPaletteWithLUT(rawGrid, colorLUTRef.current, colorLUTBackground.current));
+      } else {
+        setGrid(applyPaletteById(rawGrid, paletteId));
+      }
     },
     [paletteId]
   );
@@ -123,7 +157,7 @@ export function useASCIIConverter(
 
     img.onload = () => {
       if (imgRef.current !== img) return; // stale
-      const raw = imageToAsciiGrid(img, containerWidth, containerHeight, conversionOpts);
+      const { grid: raw } = imageToAsciiGrid(img, containerWidth, containerHeight, conversionOpts);
       applyAndSet(raw);
     };
     img.src = imageSrc;
@@ -208,9 +242,9 @@ export function useASCIIConverter(
   useEffect(() => {
     if (!loopRef.current) return;
     if (isActive) {
-      loopRef.current.start();
+      loopRef.current.resume();
     } else {
-      loopRef.current.stop();
+      loopRef.current.pause();
     }
   }, [isActive]);
 

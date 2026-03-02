@@ -64,6 +64,9 @@ export function ASCIIfy({
   crtScanlineOpacity = DEFAULT_CRT.scanlineOpacity,
   crtGlowIntensity = DEFAULT_CRT.glowIntensity,
   crtGlowColor = DEFAULT_CRT.glowColor,
+  crtCurvature = DEFAULT_CRT.curvature,
+  crtFlickerSpeed = DEFAULT_CRT.flickerSpeed,
+  crtNoiseAmount = DEFAULT_CRT.noiseAmount,
 
   // Accessibility
   ariaLabel = "",
@@ -110,9 +113,9 @@ export function ASCIIfy({
     scanlineOpacity: crtScanlineOpacity,
     glowIntensity: crtGlowIntensity,
     glowColor: crtGlowColor,
-    curvature: 0,
-    flickerSpeed: 0,
-    noiseAmount: 0,
+    curvature: crtCurvature,
+    flickerSpeed: crtFlickerSpeed,
+    noiseAmount: crtNoiseAmount,
   };
 
   const label =

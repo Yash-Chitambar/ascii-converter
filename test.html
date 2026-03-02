@@ -481,6 +481,17 @@ function brightnessToChar(brightness, ramp, invert = false) {
   return ramp[idx];
 }
 
+function buildCharLUT(ramp, invert = false) {
+  const lut = new Array(256);
+  for (let b = 0; b < 256; b++) {
+    const brightness = b / 255;
+    const adjusted = invert ? 1 - brightness : brightness;
+    const idx = Math.min(ramp.length - 1, Math.floor((1 - adjusted) * ramp.length));
+    lut[b] = ramp[idx];
+  }
+  return lut;
+}
+
 // --- fit-modes ---
 function computeFit(srcW, srcH, dstW, dstH, mode) {
   switch (mode) {
@@ -546,6 +557,29 @@ function applyPalette(grid, paletteId) {
   }));
 }
 
+function buildColorLUT(palette) {
+  if (palette.type === 'original') return null;
+  const lut = new Array(256);
+  for (let b = 0; b < 256; b++) {
+    const brightness = b / 255;
+    switch (palette.type) {
+      case 'monochrome': lut[b] = palette.foreground || '#ffffff'; break;
+      case 'mapped': lut[b] = sampleGradient(palette.colorStops || [], brightness); break;
+      default: lut[b] = '#ffffff';
+    }
+  }
+  return lut;
+}
+
+function applyPaletteWithLUT(grid, colorLUT, background) {
+  return grid.map(row => row.map(cell => {
+    const color = colorLUT
+      ? colorLUT[Math.round(cell.brightness * 255)]
+      : rgbToHex(cell.r, cell.g, cell.b);
+    return { ...cell, color, background };
+  }));
+}
+
 // --- image-to-ascii ---
 function imageToAsciiGrid(source, containerW, containerH, opts) {
   const {
@@ -575,18 +609,32 @@ function imageToAsciiGrid(source, containerW, containerH, opts) {
   const data = imageData.data;
   const grid = [];
 
+  const charLUT = buildCharLUT(ramp, invertBrightness);
+
   for (let row = 0; row < gridRows; row++) {
     const gridRow = [];
     for (let col = 0; col < gridCols; col++) {
-      const px = Math.floor((col / gridCols) * sampleW);
-      const py = Math.floor((row / gridRows) * sampleH);
-      const idx = (py * sampleW + px) * 4;
-      const r = data[idx], g = data[idx + 1], b = data[idx + 2], a = data[idx + 3];
+      // Block averaging
+      const x0 = Math.floor((col / gridCols) * sampleW);
+      const x1 = Math.max(x0 + 1, Math.floor(((col + 1) / gridCols) * sampleW));
+      const y0 = Math.floor((row / gridRows) * sampleH);
+      const y1 = Math.max(y0 + 1, Math.floor(((row + 1) / gridRows) * sampleH));
+
+      let rSum = 0, gSum = 0, bSum = 0, aSum = 0, count = 0;
+      for (let py = y0; py < y1; py++) {
+        for (let px = x0; px < x1; px++) {
+          const i = (py * sampleW + px) * 4;
+          rSum += data[i]; gSum += data[i + 1]; bSum += data[i + 2]; aSum += data[i + 3];
+          count++;
+        }
+      }
+      const r = rSum / count, g = gSum / count, b = bSum / count, a = aSum / count;
 
       if (a < ALPHA_THRESHOLD) { gridRow.push({ char: ' ', r: 0, g: 0, b: 0, brightness: 0 }); continue; }
-      const brightness = rgbToBrightness(r, g, b);
+      const intB = ((r * 299 + g * 587 + b * 114 + 500) / 1000) | 0;
+      const brightness = intB / 255;
       if (brightness < DARK_THRESHOLD) { gridRow.push({ char: ' ', r, g, b, brightness }); continue; }
-      gridRow.push({ char: brightnessToChar(brightness, ramp, invertBrightness), r, g, b, brightness });
+      gridRow.push({ char: charLUT[intB], r, g, b, brightness });
     }
     grid.push(gridRow);
   }
@@ -650,6 +698,9 @@ window.brightnessToChar = brightnessToChar;
 window.densityToRampSubset = densityToRampSubset;
 window.measureChar = measureChar;
 window.applyPalette = applyPalette;
+window.buildCharLUT = buildCharLUT;
+window.buildColorLUT = buildColorLUT;
+window.applyPaletteWithLUT = applyPaletteWithLUT;
 window.getPalette = getPalette;
 window.renderToDOM = renderToDOM;
 window.FONT_FAMILY = '"Courier New", Courier, "Lucida Console", monospace';
@@ -1076,19 +1127,33 @@ function imageDataToAsciiGrid(imageData, opts) {
   const { gridCols, gridRows, rampPreset = 'standard', characterDensity = 0.5, invertBrightness = false } = opts;
   const baseRamp = RAMPS[rampPreset] || RAMPS.standard;
   const ramp = densityToRampSubset(characterDensity, baseRamp);
+  const charLUT = buildCharLUT(ramp, invertBrightness);
   const { data, width: imgW, height: imgH } = imageData;
   const grid = [];
   for (let row = 0; row < gridRows; row++) {
     const gridRow = [];
     for (let col = 0; col < gridCols; col++) {
-      const px = Math.floor((col / gridCols) * imgW);
-      const py = Math.floor((row / gridRows) * imgH);
-      const idx = (py * imgW + px) * 4;
-      const r = data[idx], g = data[idx + 1], b = data[idx + 2], a = data[idx + 3];
+      // Block averaging
+      const x0 = Math.floor((col / gridCols) * imgW);
+      const x1 = Math.max(x0 + 1, Math.floor(((col + 1) / gridCols) * imgW));
+      const y0 = Math.floor((row / gridRows) * imgH);
+      const y1 = Math.max(y0 + 1, Math.floor(((row + 1) / gridRows) * imgH));
+
+      let rSum = 0, gSum = 0, bSum = 0, aSum = 0, count = 0;
+      for (let py = y0; py < y1; py++) {
+        for (let px = x0; px < x1; px++) {
+          const i = (py * imgW + px) * 4;
+          rSum += data[i]; gSum += data[i + 1]; bSum += data[i + 2]; aSum += data[i + 3];
+          count++;
+        }
+      }
+      const r = rSum / count, g = gSum / count, b = bSum / count, a = aSum / count;
+
       if (a < ALPHA_THRESHOLD) { gridRow.push({ char: ' ', r: 0, g: 0, b: 0, brightness: 0 }); continue; }
-      const brightness = rgbToBrightness(r, g, b);
+      const intB = ((r * 299 + g * 587 + b * 114 + 500) / 1000) | 0;
+      const brightness = intB / 255;
       if (brightness < DARK_THRESHOLD) { gridRow.push({ char: ' ', r, g, b, brightness }); continue; }
-      gridRow.push({ char: brightnessToChar(brightness, ramp, invertBrightness), r, g, b, brightness });
+      gridRow.push({ char: charLUT[intB], r, g, b, brightness });
     }
     grid.push(gridRow);
   }

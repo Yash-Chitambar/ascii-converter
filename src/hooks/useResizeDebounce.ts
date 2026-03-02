@@ -41,6 +41,10 @@ export function useResizeDebounce(
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Cache char dimensions per font configuration — skip DOM probe on resize
+  const charDimCacheRef = useRef<{ charWidth: number; charHeight: number } | null>(null);
+  const lastFontKeyRef = useRef<string>("");
+
   const measure = useCallback(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -49,10 +53,26 @@ export function useResizeDebounce(
     const height = el.clientHeight;
     if (width === 0 || height === 0) return;
 
-    const { charWidth, charHeight } = measureCharDimensions(fontFamily, fontSize, lineHeight, el);
+    // Re-run measureCharDimensions() ONLY when font props have changed
+    const fontKey = `${fontFamily}|${fontSize}|${lineHeight}`;
+    if (!charDimCacheRef.current || fontKey !== lastFontKeyRef.current) {
+      charDimCacheRef.current = measureCharDimensions(fontFamily, fontSize, lineHeight, el);
+      lastFontKeyRef.current = fontKey;
+    }
+    const { charWidth, charHeight } = charDimCacheRef.current;
+
     const { gridCols, gridRows } = computeGridDimensions(width, height, charWidth, charHeight);
 
-    setSize({ width, height, charWidth, charHeight, gridCols, gridRows });
+    // Skip state update when all dimensions are unchanged (prevents re-renders)
+    setSize((prev) => {
+      if (
+        prev.width    === width    &&
+        prev.height   === height   &&
+        prev.gridCols === gridCols &&
+        prev.gridRows === gridRows
+      ) return prev;
+      return { width, height, charWidth, charHeight, gridCols, gridRows };
+    });
   }, [containerRef, fontFamily, fontSize, lineHeight]);
 
   useEffect(() => {
@@ -60,7 +80,8 @@ export function useResizeDebounce(
 
     const observer = new ResizeObserver(() => {
       if (timerRef.current !== null) clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(measure, debounceMs);
+      // RAF alignment: wait for browser layout to settle before measuring
+      timerRef.current = setTimeout(() => requestAnimationFrame(measure), debounceMs);
     });
 
     if (containerRef.current) {

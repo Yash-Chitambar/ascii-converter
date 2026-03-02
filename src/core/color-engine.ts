@@ -106,6 +106,63 @@ export function applyPalette(
 }
 
 // ---------------------------------------------------------------------------
+// Pre-computed color LUT for hot paths
+// ---------------------------------------------------------------------------
+
+/**
+ * Pre-computes a 256-entry color LUT for the given palette.
+ * Index b (0–255) → CSS color string for that integer brightness.
+ *
+ * Call once per palette change; cache the result in a ref.
+ * For 'original' palette, returns null (per-pixel source RGB cannot be cached).
+ *
+ * Based on benchmark findings: pre-computed string[] LUTs are ~4× faster than
+ * inline lerpColor() + hexToRgb() + rgbToHex() chains per cell per frame.
+ */
+export function buildColorLUT(palette: ColorPalette): string[] | null {
+  if (palette.type === "original") return null;
+
+  const lut: string[] = new Array(256);
+  for (let b = 0; b < 256; b++) {
+    const brightness = b / 255;
+    switch (palette.type) {
+      case "monochrome":
+        lut[b] = palette.foreground ?? "#ffffff";
+        break;
+      case "mapped":
+        lut[b] = sampleGradient(palette.colorStops ?? [], brightness);
+        break;
+      default:
+        lut[b] = "#ffffff";
+    }
+  }
+  return lut;
+}
+
+/**
+ * Fast palette application using a pre-built color LUT.
+ * Replaces applyPalette() in hot paths (video, 3D RAF loops).
+ *
+ * @param grid       - Raw AsciiGrid
+ * @param colorLUT   - From buildColorLUT(); null means palette.type === 'original'
+ * @param background - palette.background CSS string
+ */
+export function applyPaletteWithLUT(
+  grid: AsciiGrid,
+  colorLUT: string[] | null,
+  background: string
+): StyledAsciiGrid {
+  return grid.map((row) =>
+    row.map((cell): StyledAsciiCell => {
+      const color = colorLUT
+        ? colorLUT[Math.round(cell.brightness * 255)]
+        : rgbToHex(cell.r, cell.g, cell.b);
+      return { ...cell, color, background };
+    })
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Convenience: apply palette by id string
 // ---------------------------------------------------------------------------
 

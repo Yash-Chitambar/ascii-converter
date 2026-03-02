@@ -3,13 +3,13 @@
   "version": "0.1.0",
   "description": "ASCIIfy — Framer component for real-time ASCII art conversion from images, videos, and 3D GLB models",
   "main": "dist/index.js",
-  "module": "dist/index.esm.js",
+  "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "tsc --noEmit",
+    "build": "tsup",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest"
@@ -27,6 +27,8 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/three": "^0.170.0",
+    "jsdom": "^28.1.0",
+    "tsup": "^8.5.1",
     "typescript": "^5",
     "vitest": "^4.0.18"
   },

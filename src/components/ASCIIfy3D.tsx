@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState } from "react";
 import type { ASCIIfy3DProps, StyledAsciiGrid, CRTOptions } from "../types";
+import type { GLBToAsciiHandle } from "../three/glb-to-ascii";
 import { ASCIICanvas } from "./ASCIICanvas";
 import { useResizeDebounce } from "../hooks/useResizeDebounce";
 import { useViewportAware } from "../hooks/useViewportAware";
@@ -39,6 +40,9 @@ export function ASCIIfy3D({
   crtEnabled = false,
   crtGlowColor = DEFAULT_CRT.glowColor,
   crtScanlineOpacity = DEFAULT_CRT.scanlineOpacity,
+  crtCurvature = DEFAULT_CRT.curvature,
+  crtFlickerSpeed = DEFAULT_CRT.flickerSpeed,
+  crtNoiseAmount = DEFAULT_CRT.noiseAmount,
 
   resolutionScale = DEFAULT_RESOLUTION_SCALE,
   refreshRate = 15,
@@ -56,6 +60,7 @@ export function ASCIIfy3D({
   });
 
   const [grid, setGrid] = useState<StyledAsciiGrid>([]);
+  const handleRef = useRef<GLBToAsciiHandle | null>(null);
 
   // Palette applied is classic-green for monochrome, original for colorMode=original
   const paletteId = colorMode === "original" ? "original" : "classic-green";
@@ -91,12 +96,14 @@ export function ASCIIfy3D({
         return;
       }
       handle = h;
+      handleRef.current = h;
       if (isVisible) h.start();
     }).catch(console.error);
 
     return () => {
       cancelled = true;
       handle?.dispose();
+      handleRef.current = null;
     };
   // Re-create renderer if fundamental options change (model URL, grid size, etc.)
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -106,9 +113,11 @@ export function ASCIIfy3D({
 
   // Pause / resume when visibility changes
   useEffect(() => {
-    // The handle is managed inside the above effect's closure, so we rely on
-    // the ASCIIConverter pattern: the loop ref is internal. Nothing to do here
-    // directly — the next effect trigger will re-start if needed.
+    if (isVisible) {
+      handleRef.current?.start();
+    } else {
+      handleRef.current?.stop();
+    }
   }, [isVisible]);
 
   const crt: CRTOptions = {
@@ -116,9 +125,9 @@ export function ASCIIfy3D({
     scanlineOpacity: crtScanlineOpacity,
     glowIntensity: DEFAULT_CRT.glowIntensity,
     glowColor: crtGlowColor,
-    curvature: 0,
-    flickerSpeed: 0,
-    noiseAmount: 0,
+    curvature: crtCurvature,
+    flickerSpeed: crtFlickerSpeed,
+    noiseAmount: crtNoiseAmount,
   };
 
   return (

@@ -1,5 +1,5 @@
 import type { AsciiGrid, AsciiCell, FitMode } from "../types";
-import { rgbToBrightness, brightnessToChar, isTransparent, isDark, densityToRampSubset, getRamp } from "./char-ramp";
+import { rgbToBrightness, brightnessToChar, isTransparent, isDark, densityToRampSubset, getRamp, buildCharLUT } from "./char-ramp";
 import { computeFit } from "./fit-modes";
 import type { RampPreset } from "../types";
 
@@ -30,20 +30,23 @@ export interface ImageToAsciiOptions {
 // Offscreen canvas helper
 // ---------------------------------------------------------------------------
 
-function createSamplingCanvas(
+function getOrCreateSamplingCanvas(
   width: number,
-  height: number
+  height: number,
+  existing?: HTMLCanvasElement | OffscreenCanvas
 ): { canvas: HTMLCanvasElement | OffscreenCanvas; ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D } {
+  if (existing && existing.width === width && existing.height === height) {
+    const ctx = existing.getContext("2d") as CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
+    return { canvas: existing, ctx };
+  }
   if (typeof OffscreenCanvas !== "undefined") {
     const canvas = new OffscreenCanvas(width, height);
-    const ctx = canvas.getContext("2d") as OffscreenCanvasRenderingContext2D;
-    return { canvas, ctx };
+    return { canvas, ctx: canvas.getContext("2d") as OffscreenCanvasRenderingContext2D };
   }
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
-  const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
-  return { canvas, ctx };
+  return { canvas, ctx: canvas.getContext("2d") as CanvasRenderingContext2D };
 }
 
 // ---------------------------------------------------------------------------
@@ -63,8 +66,9 @@ export function imageToAsciiGrid(
   source: HTMLImageElement | ImageBitmap,
   containerWidth: number,
   containerHeight: number,
-  options: ImageToAsciiOptions
-): AsciiGrid {
+  options: ImageToAsciiOptions,
+  existingCanvas?: HTMLCanvasElement | OffscreenCanvas
+): { grid: AsciiGrid; canvas: HTMLCanvasElement | OffscreenCanvas } {
   const {
     gridCols,
     gridRows,
@@ -90,7 +94,7 @@ export function imageToAsciiGrid(
   const sampleW = Math.max(1, Math.round(containerWidth * resolutionScale));
   const sampleH = Math.max(1, Math.round(containerHeight * resolutionScale));
 
-  const { ctx } = createSamplingCanvas(sampleW, sampleH);
+  const { canvas, ctx } = getOrCreateSamplingCanvas(sampleW, sampleH, existingCanvas);
 
   // --- Compute fit ---
   const fit = computeFit(srcW, srcH, sampleW, sampleH, fitMode);
@@ -106,22 +110,31 @@ export function imageToAsciiGrid(
   const imageData = ctx.getImageData(0, 0, sampleW, sampleH);
   const { data } = imageData;
 
-  // --- Build ASCII grid ---
+  // --- Build ASCII grid (block averaging) ---
   const grid: AsciiGrid = [];
 
   for (let row = 0; row < gridRows; row++) {
     const gridRow: AsciiCell[] = [];
 
     for (let col = 0; col < gridCols; col++) {
-      // Map grid cell to pixel position in the sample canvas
-      const px = Math.floor((col / gridCols) * sampleW);
-      const py = Math.floor((row / gridRows) * sampleH);
-      const idx = (py * sampleW + px) * 4;
+      // Block averaging: average all pixels in the block for this cell
+      const x0 = Math.floor((col       / gridCols) * sampleW);
+      const x1 = Math.max(x0 + 1, Math.floor(((col + 1) / gridCols) * sampleW));
+      const y0 = Math.floor((row       / gridRows) * sampleH);
+      const y1 = Math.max(y0 + 1, Math.floor(((row + 1) / gridRows) * sampleH));
 
-      const r = data[idx];
-      const g = data[idx + 1];
-      const b = data[idx + 2];
-      const a = data[idx + 3];
+      let rSum = 0, gSum = 0, bSum = 0, aSum = 0, count = 0;
+      for (let py = y0; py < y1; py++) {
+        for (let px = x0; px < x1; px++) {
+          const i = (py * sampleW + px) * 4;
+          rSum += data[i]; gSum += data[i + 1]; bSum += data[i + 2]; aSum += data[i + 3];
+          count++;
+        }
+      }
+      const r = rSum / count;
+      const g = gSum / count;
+      const b = bSum / count;
+      const a = aSum / count;
 
       if (isTransparent(a)) {
         gridRow.push({ char: " ", r: 0, g: 0, b: 0, brightness: 0 });
@@ -142,7 +155,7 @@ export function imageToAsciiGrid(
     grid.push(gridRow);
   }
 
-  return grid;
+  return { grid, canvas };
 }
 
 // ---------------------------------------------------------------------------
@@ -158,7 +171,7 @@ export function imageUrlToAsciiGrid(
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.crossOrigin = "anonymous";
-    img.onload = () => resolve(imageToAsciiGrid(img, containerWidth, containerHeight, options));
+    img.onload = () => resolve(imageToAsciiGrid(img, containerWidth, containerHeight, options).grid);
     img.onerror = reject;
     img.src = src;
   });
@@ -170,7 +183,8 @@ export function imageUrlToAsciiGrid(
 
 export function imageDataToAsciiGrid(
   imageData: ImageData,
-  options: ImageToAsciiOptions
+  options: ImageToAsciiOptions,
+  charLUT?: string[]
 ): AsciiGrid {
   const { gridCols, gridRows, rampPreset = "standard", customCharacters, characterDensity = 0.5, invertBrightness = false } = options;
 
@@ -186,28 +200,44 @@ export function imageDataToAsciiGrid(
     const gridRow: AsciiCell[] = [];
 
     for (let col = 0; col < gridCols; col++) {
-      const px = Math.floor((col / gridCols) * imgW);
-      const py = Math.floor((row / gridRows) * imgH);
-      const idx = (py * imgW + px) * 4;
+      // Block averaging: average all pixels in the block for this cell
+      const x0 = Math.floor((col       / gridCols) * imgW);
+      const x1 = Math.max(x0 + 1, Math.floor(((col + 1) / gridCols) * imgW));
+      const y0 = Math.floor((row       / gridRows) * imgH);
+      const y1 = Math.max(y0 + 1, Math.floor(((row + 1) / gridRows) * imgH));
 
-      const r = data[idx];
-      const g = data[idx + 1];
-      const b = data[idx + 2];
-      const a = data[idx + 3];
+      let rSum = 0, gSum = 0, bSum = 0, aSum = 0, count = 0;
+      for (let py = y0; py < y1; py++) {
+        for (let px = x0; px < x1; px++) {
+          const i = (py * imgW + px) * 4;
+          rSum += data[i]; gSum += data[i + 1]; bSum += data[i + 2]; aSum += data[i + 3];
+          count++;
+        }
+      }
+      const r = rSum / count;
+      const g = gSum / count;
+      const b = bSum / count;
+      const a = aSum / count;
 
       if (isTransparent(a)) {
         gridRow.push({ char: " ", r: 0, g: 0, b: 0, brightness: 0 });
         continue;
       }
 
-      const brightness = rgbToBrightness(r, g, b);
+      if (charLUT) {
+        // Integer BT.601 formula — identical result, no floating point division
+        const intB = ((r * 299 + g * 587 + b * 114 + 500) / 1000) | 0;
+        gridRow.push({ char: charLUT[intB], r, g, b, brightness: intB / 255 });
+      } else {
+        const brightness = rgbToBrightness(r, g, b);
 
-      if (isDark(brightness)) {
-        gridRow.push({ char: " ", r, g, b, brightness });
-        continue;
+        if (isDark(brightness)) {
+          gridRow.push({ char: " ", r, g, b, brightness });
+          continue;
+        }
+
+        gridRow.push({ char: brightnessToChar(brightness, ramp, invertBrightness), r, g, b, brightness });
       }
-
-      gridRow.push({ char: brightnessToChar(brightness, ramp, invertBrightness), r, g, b, brightness });
     }
 
     grid.push(gridRow);

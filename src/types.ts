@@ -135,6 +135,9 @@ export interface ASCIIfyProps {
   crtScanlineOpacity: number;
   crtGlowIntensity: number;
   crtGlowColor: string;
+  crtCurvature: number;
+  crtFlickerSpeed: number;
+  crtNoiseAmount: number;
 
   // Accessibility
   ariaLabel: string;
@@ -161,6 +164,9 @@ export interface ASCIIfy3DProps {
   crtEnabled: boolean;
   crtGlowColor: string;
   crtScanlineOpacity: number;
+  crtCurvature: number;
+  crtFlickerSpeed: number;
+  crtNoiseAmount: number;
 
   // Performance
   resolutionScale: number;

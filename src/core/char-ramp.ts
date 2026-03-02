@@ -72,6 +72,28 @@ export function brightnessToChar(
 }
 
 /**
+ * Builds a 256-entry lookup table mapping integer brightness (0–255) to an
+ * ASCII character from the given ramp.
+ *
+ * Call once per ramp/density/invert change and cache the result. Reuse it
+ * across every pixel of every frame to replace the per-pixel float arithmetic
+ * in brightnessToChar().
+ *
+ * Classic Bitmap-to-ASCII reference: index 0 = darkest (brightness 0),
+ * index 255 = brightest (brightness 1).
+ */
+export function buildCharLUT(ramp: string, invert = false): string[] {
+  const lut: string[] = new Array(256);
+  for (let b = 0; b < 256; b++) {
+    const brightness = b / 255;
+    const adjusted   = invert ? 1 - brightness : brightness;
+    const idx        = Math.min(ramp.length - 1, Math.floor((1 - adjusted) * ramp.length));
+    lut[b]           = ramp[idx];
+  }
+  return lut;
+}
+
+/**
  * Pre-computes a reverse lookup: char → approximate brightness.
  * Useful for effects that need to go from ASCII back to brightness.
  */

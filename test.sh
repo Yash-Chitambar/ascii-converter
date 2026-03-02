@@ -75,6 +75,15 @@ run_check "vitest run (all test suites)" npx vitest run
 
 echo ""
 
+# ── Build ─────────────────────────────────────────────────
+echo "--- Build ---"
+run_check "npm run build" npm run build
+run_check "dist/index.js exists" test -f dist/index.js
+run_check "dist/index.mjs exists" test -f dist/index.mjs
+run_check "dist/index.d.ts exists" test -f dist/index.d.ts
+
+echo ""
+
 # ── Config Files ───────────────────────────────────────────
 echo "--- Config Files ---"
 run_check "package.json" test -f package.json
