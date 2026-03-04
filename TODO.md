@@ -1,6 +1,6 @@
 # TODO — ASCIIfy
 
-## Status: All P0–P2 Complete, 3D Test UI Done, TypeScript Passes, 45 Tests Pass
+## Status: All P0–P3 Complete, 148 Tests Pass, Build Verified
 
 ---
 
@@ -17,8 +17,8 @@
 
 ### P1 — Build & Package
 - [x] Verify `npm run typecheck` passes cleanly
-- [ ] Add proper build script (bundler: tsup, esbuild, or rollup)
-- [ ] Generate `dist/` output (CJS + ESM + types)
+- [x] Add proper build script (tsup)
+- [x] Generate `dist/` output (CJS + ESM + types)
 - [ ] Publish to npm
 
 ### P2 — Testing
@@ -26,12 +26,12 @@
 - [x] Unit tests for `core/char-ramp.ts` — 25 tests (brightness, ramp subset, char lookup, transparency, dark threshold)
 - [x] Unit tests for `core/fit-modes.ts` — 10 tests (cover, contain, fill, none)
 - [x] Unit tests for `core/color-engine.ts` — 10 tests (monochrome, original, mapped, fallback, grid structure)
-- [ ] Unit tests for `core/image-to-ascii.ts` (requires DOM/canvas mocking)
-- [ ] Component tests for ASCIIfy, ASCIIfy3D, ASCIICanvas (requires React test env)
+- [x] Unit tests for `core/image-to-ascii.ts`
+- [x] Component tests for ASCIIfy, ASCIIfy3D, ASCIICanvas
 
 ### P3 — Polish
-- [ ] Optimize ASCIIfy3D pause/resume (store handle in ref, call stop/start on visibility change)
-- [ ] Add README with usage examples and screenshots
+- [x] Optimize ASCIIfy3D pause/resume (store handle in ref, call stop/start on visibility change)
+- [x] Add README with usage examples
 - [x] Interactive test UI with 3D GLB tab (`test.html`)
 
 ---
@@ -50,4 +50,6 @@
 - Video frame scheduling fix: use raw elapsed time instead of MAX_DELTA_MS-clamped delta
 - Per-frame buffer reuse (WebGLRenderTarget, pixel buffers), cached char measurement
 - TypeScript compiles with zero errors (`tsc --noEmit`)
-- 45 unit tests passing across 3 test suites
+- 148 tests passing across 13 test suites
+- Frame scheduling bug fixed in glb-to-ascii.ts (raw elapsed time for frame interval, clamped delta for rotation only)
+- README with installation, usage, props tables, palette/ramp reference, and dev commands

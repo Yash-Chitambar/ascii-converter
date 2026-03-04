@@ -126,16 +126,18 @@ export async function createGLBToAsciiRenderer(
   function tick(timestamp: number): void {
     if (!running) return;
 
-    const delta = Math.min(timestamp - lastFrameTime, MAX_DELTA_MS);
+    const rawElapsed = timestamp - lastFrameTime;
 
-    // Auto-rotate model
+    // Auto-rotate model — use clamped delta for animation math only (CLAUDE.md rule #5)
     if (autoRotate) {
-      const elapsed = Math.min(timestamp - lastTimestamp, MAX_DELTA_MS);
-      model.rotation.y += (autoRotateSpeed * Math.PI) / 180 / 1000 * elapsed;
+      const clampedDelta = Math.min(timestamp - lastTimestamp, MAX_DELTA_MS);
+      model.rotation.y += (autoRotateSpeed * Math.PI) / 180 / 1000 * clampedDelta;
     }
     lastTimestamp = timestamp;
 
-    if (delta >= frameInterval) {
+    // Use raw elapsed time for frame scheduling — clamped delta would prevent
+    // frames from ever rendering when frameInterval > MAX_DELTA_MS (e.g. 15fps = 66.7ms)
+    if (rawElapsed >= frameInterval) {
       lastFrameTime = timestamp;
 
       // Render to offscreen target
