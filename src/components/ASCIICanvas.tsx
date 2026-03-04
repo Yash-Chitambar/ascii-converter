@@ -70,9 +70,6 @@ export function ASCIICanvas({
     overflow: "hidden",
   };
 
-  // Background color driven by the first cell's background (all cells share palette bg)
-  const bg = grid[0]?.[0]?.background ?? "#000000";
-
   return (
     <div
       ref={containerRef}
@@ -80,7 +77,7 @@ export function ASCIICanvas({
       aria-label={ariaLabel}
       tabIndex={0}
       className={className}
-      style={{ ...containerStyle, backgroundColor: bg }}
+      style={{ ...containerStyle, backgroundColor: "transparent" }}
     >
       {renderer === "dom" ? (
         <pre

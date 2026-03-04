@@ -76,6 +76,10 @@ export function applyPalette(
 
   return grid.map((row) =>
     row.map((cell): StyledAsciiCell => {
+      if (cell.isTransparent) {
+        return { ...cell, color: "transparent", background: "transparent" };
+      }
+
       let color: string;
 
       switch (palette.type) {
@@ -154,6 +158,9 @@ export function applyPaletteWithLUT(
 ): StyledAsciiGrid {
   return grid.map((row) =>
     row.map((cell): StyledAsciiCell => {
+      if (cell.isTransparent) {
+        return { ...cell, color: "transparent", background: "transparent" };
+      }
       const color = colorLUT
         ? colorLUT[Math.round(cell.brightness * 255)]
         : rgbToHex(cell.r, cell.g, cell.b);

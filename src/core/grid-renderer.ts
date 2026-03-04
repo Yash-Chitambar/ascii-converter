@@ -39,13 +39,18 @@ export function renderToDOM(
   for (let r = 0; r < grid.length; r++) {
     const row = grid[r];
 
-    // Group consecutive cells with the same color into a single span
+    // Group consecutive cells with the same color and background into a single span
     let spanStart = 0;
     while (spanStart < row.length) {
       const currentColor = row[spanStart].color;
+      const currentBg = row[spanStart].background;
       let spanEnd = spanStart + 1;
 
-      while (spanEnd < row.length && row[spanEnd].color === currentColor) {
+      while (
+        spanEnd < row.length &&
+        row[spanEnd].color === currentColor &&
+        row[spanEnd].background === currentBg
+      ) {
         spanEnd++;
       }
 
@@ -57,6 +62,9 @@ export function renderToDOM(
 
       const span = document.createElement("span");
       span.style.color = currentColor;
+      if (currentBg !== "transparent") {
+        span.style.backgroundColor = currentBg;
+      }
       span.textContent = text;
       fragment.appendChild(span);
 
@@ -116,6 +124,11 @@ export function renderToCanvas(
     for (let c = 0; c < cols; c++) {
       const cell = row[c];
       if (cell.char === " ") continue;
+
+      if (cell.background !== "transparent") {
+        ctx.fillStyle = cell.background;
+        ctx.fillRect(c * charWidth, y, charWidth, charHeight);
+      }
 
       ctx.fillStyle = cell.color;
       ctx.fillText(cell.char, c * charWidth, y);

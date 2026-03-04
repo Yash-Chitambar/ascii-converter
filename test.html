@@ -546,6 +546,9 @@ function sampleGradient(stops, brightness) {
 function applyPalette(grid, paletteId) {
   const palette = typeof paletteId === 'string' ? getPalette(paletteId) : paletteId;
   return grid.map(row => row.map(cell => {
+    if (cell.isTransparent) {
+      return { ...cell, color: 'transparent', background: 'transparent' };
+    }
     let color;
     switch (palette.type) {
       case 'monochrome': color = palette.foreground || '#ffffff'; break;
@@ -573,6 +576,9 @@ function buildColorLUT(palette) {
 
 function applyPaletteWithLUT(grid, colorLUT, background) {
   return grid.map(row => row.map(cell => {
+    if (cell.isTransparent) {
+      return { ...cell, color: 'transparent', background: 'transparent' };
+    }
     const color = colorLUT
       ? colorLUT[Math.round(cell.brightness * 255)]
       : rgbToHex(cell.r, cell.g, cell.b);
@@ -630,11 +636,11 @@ function imageToAsciiGrid(source, containerW, containerH, opts) {
       }
       const r = rSum / count, g = gSum / count, b = bSum / count, a = aSum / count;
 
-      if (a < ALPHA_THRESHOLD) { gridRow.push({ char: ' ', r: 0, g: 0, b: 0, brightness: 0 }); continue; }
+      if (a < ALPHA_THRESHOLD) { gridRow.push({ char: ' ', r: 0, g: 0, b: 0, brightness: 0, isTransparent: true }); continue; }
       const intB = ((r * 299 + g * 587 + b * 114 + 500) / 1000) | 0;
       const brightness = intB / 255;
-      if (brightness < DARK_THRESHOLD) { gridRow.push({ char: ' ', r, g, b, brightness }); continue; }
-      gridRow.push({ char: charLUT[intB], r, g, b, brightness });
+      if (brightness < DARK_THRESHOLD) { gridRow.push({ char: ' ', r, g, b, brightness, isTransparent: false }); continue; }
+      gridRow.push({ char: charLUT[intB], r, g, b, brightness, isTransparent: false });
     }
     grid.push(gridRow);
   }
@@ -658,12 +664,14 @@ function renderToDOM(pre, grid, opts) {
     let spanStart = 0;
     while (spanStart < row.length) {
       const curColor = row[spanStart].color;
+      const curBg = row[spanStart].background;
       let spanEnd = spanStart + 1;
-      while (spanEnd < row.length && row[spanEnd].color === curColor) spanEnd++;
+      while (spanEnd < row.length && row[spanEnd].color === curColor && row[spanEnd].background === curBg) spanEnd++;
       let text = '';
       for (let c = spanStart; c < spanEnd; c++) text += row[c].char;
       const span = document.createElement('span');
       span.style.color = curColor;
+      if (curBg !== 'transparent') span.style.backgroundColor = curBg;
       span.textContent = text;
       fragment.appendChild(span);
       spanStart = spanEnd;
@@ -791,8 +799,7 @@ function renderImage() {
   renderToDOM(els.asciiOutput, styled, font);
   const dt = (performance.now() - t0).toFixed(1);
 
-  const palette = getPalette(els.palette.value);
-  els.mainArea.style.backgroundColor = palette.background;
+  els.mainArea.style.backgroundColor = 'transparent';
   els.statusGrid.textContent = `grid: ${gridCols}x${gridRows}`;
   els.statusTime.textContent = `time: ${dt}ms`;
 }
@@ -810,8 +817,7 @@ function startVideoLoop() {
 
   const opts = getOptions();
   const paletteId = els.palette.value;
-  const palette = getPalette(paletteId);
-  els.mainArea.style.backgroundColor = palette.background;
+  els.mainArea.style.backgroundColor = 'transparent';
   els.statusGrid.textContent = `grid: ${gridCols}x${gridRows}`;
 
   const frameInterval = 1000 / opts.targetFps;
@@ -850,10 +856,10 @@ function startVideoLoop() {
             const py = Math.floor((row / gridRows) * sampleH);
             const idx = (py * sampleW + px) * 4;
             const r = data[idx], g = data[idx+1], b = data[idx+2], a = data[idx+3];
-            if (a < ALPHA_THRESHOLD) { gridRow.push({ char: ' ', r: 0, g: 0, b: 0, brightness: 0 }); continue; }
+            if (a < ALPHA_THRESHOLD) { gridRow.push({ char: ' ', r: 0, g: 0, b: 0, brightness: 0, isTransparent: true }); continue; }
             const brightness = rgbToBrightness(r, g, b);
-            if (brightness < DARK_THRESHOLD) { gridRow.push({ char: ' ', r, g, b, brightness }); continue; }
-            gridRow.push({ char: brightnessToChar(brightness, ramp, opts.invertBrightness), r, g, b, brightness });
+            if (brightness < DARK_THRESHOLD) { gridRow.push({ char: ' ', r, g, b, brightness, isTransparent: false }); continue; }
+            gridRow.push({ char: brightnessToChar(brightness, ramp, opts.invertBrightness), r, g, b, brightness, isTransparent: false });
           }
           grid.push(gridRow);
         }
@@ -1149,11 +1155,11 @@ function imageDataToAsciiGrid(imageData, opts) {
       }
       const r = rSum / count, g = gSum / count, b = bSum / count, a = aSum / count;
 
-      if (a < ALPHA_THRESHOLD) { gridRow.push({ char: ' ', r: 0, g: 0, b: 0, brightness: 0 }); continue; }
+      if (a < ALPHA_THRESHOLD) { gridRow.push({ char: ' ', r: 0, g: 0, b: 0, brightness: 0, isTransparent: true }); continue; }
       const intB = ((r * 299 + g * 587 + b * 114 + 500) / 1000) | 0;
       const brightness = intB / 255;
-      if (brightness < DARK_THRESHOLD) { gridRow.push({ char: ' ', r, g, b, brightness }); continue; }
-      gridRow.push({ char: charLUT[intB], r, g, b, brightness });
+      if (brightness < DARK_THRESHOLD) { gridRow.push({ char: ' ', r, g, b, brightness, isTransparent: false }); continue; }
+      gridRow.push({ char: charLUT[intB], r, g, b, brightness, isTransparent: false });
     }
     grid.push(gridRow);
   }
@@ -1367,8 +1373,7 @@ async function handle3DFile(file) {
       const styled = applyPalette(grid, paletteId);
       const font = get3DFontOptions();
       renderToDOM(shared.asciiOutput, styled, font);
-      const palette = getPalette(paletteId);
-      shared.mainArea.style.backgroundColor = palette.background;
+      shared.mainArea.style.backgroundColor = 'transparent';
       shared.statusGrid.textContent = `grid: ${gridCols}x${gridRows}`;
       shared.statusTime.textContent = `time: ${dt.toFixed(1)}ms`;
     });

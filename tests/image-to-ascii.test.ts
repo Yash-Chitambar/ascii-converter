@@ -62,6 +62,7 @@ describe("imageDataToAsciiGrid — transparency handling", () => {
     for (const row of grid) {
       for (const cell of row) {
         expect(cell.char).toBe(" ");
+        expect(cell.isTransparent).toBe(true);
       }
     }
   });
@@ -72,6 +73,7 @@ describe("imageDataToAsciiGrid — transparency handling", () => {
     for (const row of grid) {
       for (const cell of row) {
         expect(cell.char).toBe(" ");
+        expect(cell.isTransparent).toBe(true);
       }
     }
   });
@@ -81,6 +83,12 @@ describe("imageDataToAsciiGrid — transparency handling", () => {
     const grid = imageDataToAsciiGrid(imgData, { gridCols: 5, gridRows: 5 });
     const hasNonSpace = grid.some((row) => row.some((cell) => cell.char !== " "));
     expect(hasNonSpace).toBe(true);
+    // Opaque cells should not be marked transparent
+    for (const row of grid) {
+      for (const cell of row) {
+        expect(cell.isTransparent).toBe(false);
+      }
+    }
   });
 });
 

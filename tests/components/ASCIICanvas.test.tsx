@@ -30,6 +30,7 @@ function makeGrid(rows = 2, cols = 3): StyledAsciiGrid {
       g: 255,
       b: 255,
       brightness: 1,
+      isTransparent: false,
       color: "#00ff41",
       background: "#000000",
     }))

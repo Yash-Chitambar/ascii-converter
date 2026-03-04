@@ -8,6 +8,7 @@ export interface AsciiCell {
   g: number;
   b: number;
   brightness: number;
+  isTransparent: boolean;
 }
 
 export type AsciiGrid = AsciiCell[][];

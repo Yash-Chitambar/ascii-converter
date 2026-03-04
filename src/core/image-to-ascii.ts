@@ -137,19 +137,19 @@ export function imageToAsciiGrid(
       const a = aSum / count;
 
       if (isTransparent(a)) {
-        gridRow.push({ char: " ", r: 0, g: 0, b: 0, brightness: 0 });
+        gridRow.push({ char: " ", r: 0, g: 0, b: 0, brightness: 0, isTransparent: true });
         continue;
       }
 
       const brightness = rgbToBrightness(r, g, b);
 
       if (isDark(brightness)) {
-        gridRow.push({ char: " ", r, g, b, brightness });
+        gridRow.push({ char: " ", r, g, b, brightness, isTransparent: false });
         continue;
       }
 
       const char = brightnessToChar(brightness, ramp, invertBrightness);
-      gridRow.push({ char, r, g, b, brightness });
+      gridRow.push({ char, r, g, b, brightness, isTransparent: false });
     }
 
     grid.push(gridRow);
@@ -220,23 +220,23 @@ export function imageDataToAsciiGrid(
       const a = aSum / count;
 
       if (isTransparent(a)) {
-        gridRow.push({ char: " ", r: 0, g: 0, b: 0, brightness: 0 });
+        gridRow.push({ char: " ", r: 0, g: 0, b: 0, brightness: 0, isTransparent: true });
         continue;
       }
 
       if (charLUT) {
         // Integer BT.601 formula — identical result, no floating point division
         const intB = ((r * 299 + g * 587 + b * 114 + 500) / 1000) | 0;
-        gridRow.push({ char: charLUT[intB], r, g, b, brightness: intB / 255 });
+        gridRow.push({ char: charLUT[intB], r, g, b, brightness: intB / 255, isTransparent: false });
       } else {
         const brightness = rgbToBrightness(r, g, b);
 
         if (isDark(brightness)) {
-          gridRow.push({ char: " ", r, g, b, brightness });
+          gridRow.push({ char: " ", r, g, b, brightness, isTransparent: false });
           continue;
         }
 
-        gridRow.push({ char: brightnessToChar(brightness, ramp, invertBrightness), r, g, b, brightness });
+        gridRow.push({ char: brightnessToChar(brightness, ramp, invertBrightness), r, g, b, brightness, isTransparent: false });
       }
     }
 
