@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ASCIIfy — Sample Integration</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      color: #e0e0e0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      overflow-x: hidden;
+    }
+
+    /* --- Navigation --- */
+    nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.5rem 3rem;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    nav .logo {
+      font-size: 1.4rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+    nav .logo span { color: #00ff41; }
+    nav ul {
+      list-style: none;
+      display: flex;
+      gap: 2rem;
+    }
+    nav a {
+      color: #aaa;
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: color 0.2s;
+    }
+    nav a:hover { color: #fff; }
+
+    /* --- Hero --- */
+    .hero {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4rem;
+      padding: 5rem 3rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .hero-text { max-width: 480px; }
+    .hero-text h1 {
+      font-size: 3rem;
+      font-weight: 800;
+      line-height: 1.1;
+      margin-bottom: 1rem;
+    }
+    .hero-text h1 span { color: #00ff41; }
+    .hero-text p {
+      color: #999;
+      font-size: 1.1rem;
+      line-height: 1.6;
+      margin-bottom: 2rem;
+    }
+    .btn {
+      display: inline-block;
+      padding: 0.8rem 1.8rem;
+      background: #00ff41;
+      color: #000;
+      font-weight: 600;
+      border-radius: 6px;
+      text-decoration: none;
+      font-size: 0.95rem;
+      transition: background 0.2s;
+    }
+    .btn:hover { background: #00cc34; }
+
+    /* --- ASCII Display --- */
+    .ascii-container {
+      width: 400px;
+      height: 400px;
+      position: relative;
+      flex-shrink: 0;
+    }
+    #ascii-output {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      white-space: pre;
+      overflow: hidden;
+      font-feature-settings: "liga" 0, "calt" 0;
+    }
+
+    /* --- Palette Switcher --- */
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 0.75rem;
+      padding: 0 3rem 3rem;
+      flex-wrap: wrap;
+    }
+    .controls button {
+      padding: 0.5rem 1rem;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      color: #ccc;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: all 0.2s;
+    }
+    .controls button:hover {
+      background: rgba(255,255,255,0.12);
+      color: #fff;
+    }
+    .controls button.active {
+      border-color: #00ff41;
+      color: #00ff41;
+      background: rgba(0,255,65,0.08);
+    }
+
+    /* --- Features Section --- */
+    .features {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2rem;
+      max-width: 1000px;
+      margin: 2rem auto 4rem;
+      padding: 0 3rem;
+    }
+    .feature-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 2rem;
+    }
+    .feature-card h3 {
+      font-size: 1.1rem;
+      margin-bottom: 0.5rem;
+    }
+    .feature-card p {
+      color: #888;
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 768px) {
+      .hero { flex-direction: column-reverse; padding: 2rem 1.5rem; gap: 2rem; }
+      .ascii-container { width: 300px; height: 300px; }
+      .hero-text h1 { font-size: 2rem; }
+      .features { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <div class="logo">ASCII<span>fy</span></div>
+    <ul>
+      <li><a href="#">Docs</a></li>
+      <li><a href="#">GitHub</a></li>
+      <li><a href="#">npm</a></li>
+    </ul>
+  </nav>
+
+  <section class="hero">
+    <div class="hero-text">
+      <h1>Images to <span>ASCII art</span> in real time</h1>
+      <p>A high-performance React component that converts images, videos, and 3D models into dynamic ASCII art. Transparent backgrounds let your design show through.</p>
+      <a href="#" class="btn">Get Started</a>
+    </div>
+    <div class="ascii-container">
+      <pre id="ascii-output" role="img" aria-label="ASCII art rendering of space icon"></pre>
+    </div>
+  </section>
+
+  <div class="controls">
+    <button class="active" data-palette="classic-green">Classic Green</button>
+    <button data-palette="amber-crt">Amber CRT</button>
+    <button data-palette="cool-blue">Cool Blue</button>
+    <button data-palette="hot-pink">Hot Pink</button>
+    <button data-palette="neon-gradient">Neon Gradient</button>
+    <button data-palette="heatmap">Heatmap</button>
+    <button data-palette="original">Original</button>
+  </div>
+
+  <section class="features">
+    <div class="feature-card">
+      <h3>Transparent Backgrounds</h3>
+      <p>PNG transparency passes through — ASCII art floats on your page design with no solid background blocking it.</p>
+    </div>
+    <div class="feature-card">
+      <h3>10 Color Palettes</h3>
+      <p>From classic Matrix green to heatmaps and Dracula themes. Click the buttons above to see them live.</p>
+    </div>
+    <div class="feature-card">
+      <h3>Video &amp; 3D Support</h3>
+      <p>Real-time conversion of video feeds and GLB models at configurable frame rates with automatic viewport-aware pausing.</p>
+    </div>
+  </section>
+
+  <script>
+    // =======================================================================
+    // Minimal standalone ASCII converter (inlined from src/core)
+    // =======================================================================
+
+    const ALPHA_THRESHOLD = 128;
+    const DARK_THRESHOLD = 0.05;
+    const FONT_FEATURE_SETTINGS = '"liga" 0, "calt" 0';
+
+    const RAMPS = {
+      standard: '$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,"^\'.` ',
+      simple: '@%#*+=-:. ',
+      blocks: '█▓▒░ ',
+      minimal: '#=-. ',
+      binary: '█ ',
+    };
+
+    // --- Palettes ---
+    const PALETTES = {
+      'classic-green':  { type: 'monochrome', foreground: '#00ff41', background: '#000000' },
+      'amber-crt':      { type: 'monochrome', foreground: '#ffb000', background: '#1a0800' },
+      'cool-blue':      { type: 'monochrome', foreground: '#00d4ff', background: '#0a0a1a' },
+      'hot-pink':       { type: 'monochrome', foreground: '#ff00aa', background: '#0f000a' },
+      'phosphor-white': { type: 'monochrome', foreground: '#e8e8f0', background: '#0a0a0f' },
+      'original':       { type: 'original', background: '#000000' },
+      'neon-gradient':  { type: 'mapped', background: '#0a0a0f', colorStops: [
+        { threshold: 0.0, color: '#ff00ff' }, { threshold: 0.5, color: '#00ffff' }, { threshold: 1.0, color: '#ffd700' }
+      ]},
+      'heatmap':        { type: 'mapped', background: '#050510', colorStops: [
+        { threshold: 0.0, color: '#0000ff' }, { threshold: 0.5, color: '#ff2200' }, { threshold: 1.0, color: '#ffff00' }
+      ]},
+    };
+
+    function rgbToBrightness(r, g, b) { return (0.299 * r + 0.587 * g + 0.114 * b) / 255; }
+
+    function brightnessToChar(b, ramp) {
+      const idx = Math.min(Math.floor(b * ramp.length), ramp.length - 1);
+      return ramp[ramp.length - 1 - idx];
+    }
+
+    function hexToRgb(hex) {
+      const c = hex.replace('#', '');
+      return { r: parseInt(c.slice(0,2),16), g: parseInt(c.slice(2,4),16), b: parseInt(c.slice(4,6),16) };
+    }
+    function rgbToHex(r, g, b) {
+      const h = n => Math.round(n).toString(16).padStart(2,'0');
+      return `#${h(r)}${h(g)}${h(b)}`;
+    }
+    function lerpColor(a, b, t) {
+      const ca = hexToRgb(a), cb = hexToRgb(b);
+      return rgbToHex(ca.r+(cb.r-ca.r)*t, ca.g+(cb.g-ca.g)*t, ca.b+(cb.b-ca.b)*t);
+    }
+    function sampleGradient(stops, brightness) {
+      if (!stops || stops.length === 0) return '#ffffff';
+      if (brightness <= stops[0].threshold) return stops[0].color;
+      if (brightness >= stops[stops.length-1].threshold) return stops[stops.length-1].color;
+      for (let i = 0; i < stops.length-1; i++) {
+        if (brightness >= stops[i].threshold && brightness <= stops[i+1].threshold) {
+          const t = (brightness - stops[i].threshold) / (stops[i+1].threshold - stops[i].threshold);
+          return lerpColor(stops[i].color, stops[i+1].color, t);
+        }
+      }
+      return stops[stops.length-1].color;
+    }
+
+    // --- Core pipeline ---
+    function imageToAsciiGrid(imageData, gridCols, gridRows) {
+      const { data, width: imgW, height: imgH } = imageData;
+      const ramp = RAMPS.standard;
+      const grid = [];
+      for (let row = 0; row < gridRows; row++) {
+        const gridRow = [];
+        for (let col = 0; col < gridCols; col++) {
+          const x0 = Math.floor((col / gridCols) * imgW);
+          const x1 = Math.max(x0+1, Math.floor(((col+1) / gridCols) * imgW));
+          const y0 = Math.floor((row / gridRows) * imgH);
+          const y1 = Math.max(y0+1, Math.floor(((row+1) / gridRows) * imgH));
+          let rS=0, gS=0, bS=0, aS=0, cnt=0;
+          for (let py = y0; py < y1; py++) {
+            for (let px = x0; px < x1; px++) {
+              const i = (py * imgW + px) * 4;
+              rS += data[i]; gS += data[i+1]; bS += data[i+2]; aS += data[i+3];
+              cnt++;
+            }
+          }
+          const r = rS/cnt, g = gS/cnt, b = bS/cnt, a = aS/cnt;
+          if (a < ALPHA_THRESHOLD) { gridRow.push({ char: ' ', r:0, g:0, b:0, brightness: 0, isTransparent: true }); continue; }
+          const brightness = rgbToBrightness(r, g, b);
+          if (brightness < DARK_THRESHOLD) { gridRow.push({ char: ' ', r, g, b, brightness, isTransparent: false }); continue; }
+          gridRow.push({ char: brightnessToChar(brightness, ramp), r, g, b, brightness, isTransparent: false });
+        }
+        grid.push(gridRow);
+      }
+      return grid;
+    }
+
+    function applyPalette(grid, paletteId) {
+      const palette = PALETTES[paletteId] || PALETTES['classic-green'];
+      return grid.map(row => row.map(cell => {
+        if (cell.isTransparent) return { ...cell, color: 'transparent', background: 'transparent' };
+        let color;
+        switch (palette.type) {
+          case 'monochrome': color = palette.foreground; break;
+          case 'original': color = rgbToHex(cell.r, cell.g, cell.b); break;
+          case 'mapped': color = sampleGradient(palette.colorStops, cell.brightness); break;
+          default: color = '#ffffff';
+        }
+        return { ...cell, color, background: palette.background };
+      }));
+    }
+
+    function renderToDOM(pre, grid, fontSize, lineHeight, fontFamily) {
+      const s = pre.style;
+      s.fontSize = fontSize + 'px';
+      s.lineHeight = String(lineHeight);
+      s.fontFamily = fontFamily;
+      s.fontFeatureSettings = FONT_FEATURE_SETTINGS;
+
+      const fragment = document.createDocumentFragment();
+      for (let r = 0; r < grid.length; r++) {
+        const row = grid[r];
+        let spanStart = 0;
+        while (spanStart < row.length) {
+          const curColor = row[spanStart].color;
+          const curBg = row[spanStart].background;
+          let spanEnd = spanStart + 1;
+          while (spanEnd < row.length && row[spanEnd].color === curColor && row[spanEnd].background === curBg) spanEnd++;
+          let text = '';
+          for (let c = spanStart; c < spanEnd; c++) text += row[c].char;
+          const span = document.createElement('span');
+          span.style.color = curColor;
+          if (curBg !== 'transparent') span.style.backgroundColor = curBg;
+          span.textContent = text;
+          fragment.appendChild(span);
+          spanStart = spanEnd;
+        }
+        if (r < grid.length - 1) fragment.appendChild(document.createTextNode('\n'));
+      }
+      pre.innerHTML = '';
+      pre.appendChild(fragment);
+    }
+
+    // --- Measure monospace char dimensions ---
+    function measureChar(fontFamily, fontSize, lineHeight, container) {
+      const probe = document.createElement('span');
+      probe.style.fontFamily = fontFamily;
+      probe.style.fontSize = fontSize + 'px';
+      probe.style.lineHeight = String(lineHeight);
+      probe.style.fontFeatureSettings = FONT_FEATURE_SETTINGS;
+      probe.style.position = 'absolute';
+      probe.style.visibility = 'hidden';
+      probe.textContent = 'M';
+      container.appendChild(probe);
+      const rect = probe.getBoundingClientRect();
+      container.removeChild(probe);
+      return { charWidth: rect.width, charHeight: rect.height };
+    }
+
+    // =======================================================================
+    // App logic
+    // =======================================================================
+
+    const pre = document.getElementById('ascii-output');
+    const container = document.querySelector('.ascii-container');
+    const FONT_FAMILY = '"Courier New", Courier, monospace';
+    const FONT_SIZE = 8;
+    const LINE_HEIGHT = 1.0;
+    let currentPalette = 'classic-green';
+    let cachedGrid = null;
+
+    function render() {
+      if (!cachedGrid) return;
+      const styled = applyPalette(cachedGrid, currentPalette);
+      renderToDOM(pre, styled, FONT_SIZE, LINE_HEIGHT, FONT_FAMILY);
+    }
+
+    // Load image and convert
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const rect = container.getBoundingClientRect();
+      const { charWidth, charHeight } = measureChar(FONT_FAMILY, FONT_SIZE, LINE_HEIGHT, container);
+      const gridCols = Math.max(1, Math.floor(rect.width / charWidth));
+      const gridRows = Math.max(1, Math.floor(rect.height / charHeight));
+
+      // Draw to offscreen canvas
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+      cachedGrid = imageToAsciiGrid(imageData, gridCols, gridRows);
+      render();
+    };
+    img.src = '../pngtree-vector-space-icon-png-image_516442.jpg';
+
+    // Palette switcher
+    document.querySelector('.controls').addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-palette]');
+      if (!btn) return;
+      document.querySelectorAll('.controls button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentPalette = btn.dataset.palette;
+      render();
+    });
+  </script>
+</body>
+</html>
